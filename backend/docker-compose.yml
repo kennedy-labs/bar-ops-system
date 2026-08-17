@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bar-ops-db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: bar_ops_dev
+
+    ports:
+      - '5433:5432'
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: bar-ops-api
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: 'postgresql://postgres:mypassword@db:5432/bar_ops_dev'
+      JWT_SECRET: 'change_me_in_production'
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

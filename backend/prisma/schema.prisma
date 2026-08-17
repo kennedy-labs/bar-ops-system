@@ -1,32 +1,140 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MovementType {
+  SUPPLIER_DELIVERY
+  TRANSFER_IN
+  TRANSFER_OUT
+  DAMAGE
+  ADJUSTMENT
+  SHIFT_ADDITION
+}
+
+enum UserRole {
+  OWNER
+  MANAGER
+  WORKER
+}
+
+enum StockLocationType {
+  COUNTER
+  STORAGE
+}
+
+enum TransferStatus {
+  PENDING
+  SENDER_CONFIRMED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum MpesaAccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MpesaTransactionStatus {
+  RECEIVED
+  RECONCILED
+  DISPUTED
+}
+
+enum DiscrepancyType {
+  STOCK_SHORTAGE
+  CASH_SHORTAGE
+  MPESA_MISMATCH
+  TRANSFER_MISMATCH
+  UNCONFIRMED_ADDITION
+}
+
+enum DiscrepancyStatus {
+  OPEN
+  RESOLVED
+}
+
+model MpesaAccount {
+  id                String             @id @default(cuid())
+  businessId        String
+  business          Business           @relation(fields: [businessId], references: [id])
+  accountIdentifier String
+  displayName       String
+  status            MpesaAccountStatus @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  transactions MpesaTransaction[]
+
+  @@unique([businessId, accountIdentifier])
+}
+
+model MpesaTransaction {
+  id                    String                 @id @default(cuid())
+  businessId            String
+  business              Business               @relation(fields: [businessId], references: [id])
+  mpesaAccountId        String
+  mpesaAccount          MpesaAccount           @relation(fields: [mpesaAccountId], references: [id])
+  shiftId               String?
+  shift                 Shift?                 @relation(fields: [shiftId], references: [id])
+  externalTransactionId String
+  amount                Decimal                @db.Decimal(65, 30)
+  transactionTime       DateTime
+  status                MpesaTransactionStatus @default(RECEIVED)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@unique([mpesaAccountId, externalTransactionId])
 }
 
 model Business {
-  id       String   @id @default(cuid())
-  name     String
-  branches Branch[]
-  users    User[]
+  id   String @id @default(cuid())
+  name String
+
+  phone String?
+  email String?
+
+  currency String @default("KES")
+  timezone String @default("Africa/Nairobi")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches          Branch[]
+  products          Product[]
+  users             User[]
+  transfers         Transfer[]
+  stockMovements    StockMovement[]    @relation("BusinessStockMovements")
+  mpesaAccounts     MpesaAccount[]
+  mpesaTransactions MpesaTransaction[]
+  discrepancies     Discrepancy[]
 }
 
 model Branch {
   id   String @id @default(cuid())
   name String
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
 
-  products Product[]
+  inventory         InventoryItem[]
+  movements         StockMovement[]
+  shifts            Shift[]
+  stockLocations    StockLocation[]
+  senderTransfers   Transfer[]      @relation("SenderTransfers")
+  receiverTransfers Transfer[]      @relation("ReceiverTransfers")
+  expenses          Expense[]
+  discrepancies     Discrepancy[]
+
+  @@unique([businessId, name])
 }
 
 model Product {
@@ -34,14 +142,270 @@ model Product {
   name         String
   sellingPrice Float
 
-  branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
-}
-
-model User {
-  id   String @id @default(cuid())
-  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   businessId String
   business   Business @relation(fields: [businessId], references: [id])
+
+  inventory       InventoryItem[]
+  movements       StockMovement[]
+  costHistory     ProductCostHistory[]
+  units           ProductUnit[]
+  shiftStockItems ShiftStockItem[]
+  transferItems   TransferItem[]
+
+  @@unique([businessId, name])
+}
+
+model ProductCostHistory {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  costPrice   Float
+  effectiveAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id String @id @default(cuid())
+
+  amount      Float
+  description String?
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  createdById String?
+  createdBy   User?   @relation("UserExpenses", fields: [createdById], references: [id])
+
+  createdAt     DateTime      @default(now())
+  discrepancies Discrepancy[]
+}
+
+model ProductUnit {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  transferItems  TransferItem[]
+  stockMovements StockMovement[]
+}
+
+model User {
+  id   String   @id @default(cuid())
+  name String
+  password String @default("temporary_password")
+  role UserRole @default(WORKER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  shifts            Shift[]
+  senderTransfers   Transfer[]      @relation("SenderTransfers")
+  receiverTransfers Transfer[]      @relation("ReceiverTransfers")
+  expensesCreated   Expense[]       @relation("UserExpenses")
+  discrepancies     Discrepancy[]   @relation("UserDiscrepancies")
+  stockMovements    StockMovement[]
+}
+
+model InventoryItem {
+  id       String @id @default(cuid())
+  quantity Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  stockLocationId String?
+  stockLocation   StockLocation? @relation(fields: [stockLocationId], references: [id])
+
+  @@unique([branchId, productId])
+}
+
+model StockMovement {
+  id       String       @id @default(cuid())
+  quantity Int
+  type     MovementType
+
+  createdAt DateTime @default(now())
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  // ADDED
+  businessId String
+  business   Business @relation("BusinessStockMovements", fields: [businessId], references: [id])
+
+  // ADDED: links movement to the specific product unit being moved
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id])
+
+  shiftId String?
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
+
+  transferId String?
+  transfer   Transfer? @relation(fields: [transferId], references: [id])
+
+  stockLocationId String?
+  stockLocation   StockLocation? @relation(fields: [stockLocationId], references: [id])
+
+  discrepancies Discrepancy[]
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
+
+model StockLocation {
+  id       String            @id @default(cuid())
+  branchId String
+  branch   Branch            @relation(fields: [branchId], references: [id])
+  name     String
+  type     StockLocationType
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory InventoryItem[]
+  movements StockMovement[]
+}
+
+model ShiftStockItem {
+  id              String  @id @default(cuid())
+  shiftId         String
+  shift           Shift   @relation(fields: [shiftId], references: [id])
+  productId       String
+  product         Product @relation(fields: [productId], references: [id])
+  openingQuantity Int
+  addedQuantity   Int?    @default(0)
+  closingQuantity Int?    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transfer {
+  id String @id @default(cuid())
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  senderBranchId String
+  senderBranch   Branch @relation("SenderTransfers", fields: [senderBranchId], references: [id])
+
+  receiverBranchId String
+  receiverBranch   Branch @relation("ReceiverTransfers", fields: [receiverBranchId], references: [id])
+
+  senderUserId String
+  senderUser   User   @relation("SenderTransfers", fields: [senderUserId], references: [id])
+
+  receiverUserId String?
+  receiverUser   User?   @relation("ReceiverTransfers", fields: [receiverUserId], references: [id])
+
+  status TransferStatus @default(PENDING)
+
+  notes String?
+
+  dispatchedAt DateTime?
+  receivedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items          TransferItem[]
+  stockMovements StockMovement[]
+  discrepancies  Discrepancy[]
+}
+
+model TransferItem {
+  id String @id @default(cuid())
+
+  transferId String
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  productUnitId String
+  productUnit   ProductUnit @relation(fields: [productUnitId], references: [id])
+
+  quantity Int
+
+  createdAt DateTime @default(now())
+}
+
+model Discrepancy {
+  id String @id @default(cuid())
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  shiftId String?
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
+
+  transferId String?
+  transfer   Transfer? @relation(fields: [transferId], references: [id])
+
+  stockMovementId String?
+  stockMovement   StockMovement? @relation(fields: [stockMovementId], references: [id])
+
+  expenseId String?
+  expense   Expense? @relation(fields: [expenseId], references: [id])
+
+  createdById String?
+  user        User?   @relation("UserDiscrepancies", fields: [createdById], references: [id])
+
+  type            DiscrepancyType
+  status          DiscrepancyStatus @default(OPEN)
+  expectedValue   Decimal           @db.Decimal(65, 30)
+  actualValue     Decimal           @db.Decimal(65, 30)
+  variance        Decimal           @db.Decimal(65, 30)
+  description     String?
+  sourceReference String
+  resolution      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceReference])
+  @@index([businessId, status])
+  @@index([branchId, createdAt])
+  @@index([shiftId])
+}
+
+model Shift {
+  id String @id @default(cuid())
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  movements         StockMovement[]
+  shiftStockItems   ShiftStockItem[]
+  discrepancies     Discrepancy[]
+  mpesaTransactions MpesaTransaction[]
 }
