@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Local/system font stack — avoids fetching web fonts at build/runtime
+     (supports offline operation and avoids network-dependent builds). */
+  --font-geist-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 @theme inline {

@@ -7,8 +7,23 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Allowed browser origins (CORS). Comma-separated via CORS_ORIGIN env var.
+  // Defaults cover local development; add the production frontend URL in
+  // the production environment (e.g. the Vercel/custom frontend domain).
+  const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: '*',
+    origin(origin, callback) {
+      // Allow same-origin / non-browser requests (health checks, server-to-server).
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Origin not allowed by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
