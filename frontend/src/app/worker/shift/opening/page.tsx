@@ -12,6 +12,9 @@ export default function OpeningStockVerification() {
       const response = await api.get("/inventory-items");
       return response.data;
     },
+    // Only run in the browser after the worker is authenticated; skip the
+    // server-side static export during the Vercel build.
+    enabled: typeof window !== "undefined",
   });
 
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -39,13 +42,13 @@ export default function OpeningStockVerification() {
     startShiftMutation.mutate({ items: verificationData });
   };
 
-  if (isLoading) return <div>Loading opening inventory...</div>;
+  if (isLoading || !data) return <div>Loading opening inventory...</div>;
 
   return (
     <main className="p-6">
       <h1 className="text-2xl font-bold mb-4">Opening Stock Verification</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {data.map((item: any) => (
+        {(Array.isArray(data) ? data : []).map((item: any) => (
           <div
             key={item.id}
             className="flex justify-between items-center p-2 border rounded"

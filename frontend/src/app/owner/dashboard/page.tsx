@@ -9,9 +9,12 @@ export default function OwnerDashboard() {
       const response = await api.get("/reports/summary");
       return response.data;
     },
+    // This page is authenticated and fetches after login in the browser.
+    // Do not run the fetch during server-side static export (Vercel build).
+    enabled: typeof window !== "undefined",
   });
 
-  if (isLoading) return <div>Loading dashboard...</div>;
+  if (isLoading || !data) return <div>Loading dashboard...</div>;
 
   return (
     <main className="p-6">

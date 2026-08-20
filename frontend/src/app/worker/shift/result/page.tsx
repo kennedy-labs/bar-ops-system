@@ -9,9 +9,11 @@ export default function ShiftResult() {
       const response = await api.get('/reports/summary');
       return response.data;
     },
+    // Run only in the browser; skip the server-side static export at build.
+    enabled: typeof window !== 'undefined',
   });
 
-  if (isLoading) return <div>Calculating shift results...</div>;
+  if (isLoading || !data) return <div>Calculating shift results...</div>;
 
   return (
     <main className="p-6">
