@@ -1,5 +1,23 @@
 import { create } from 'zustand';
 
+const TOKEN_KEY = 'token';
+const USER_KEY = 'user';
+
+function readStorage<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key: string, value: unknown) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 interface AuthState {
   token: string | null;
   user: any | null;
@@ -8,14 +26,21 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
-  user: null,
+  token:
+    typeof window !== 'undefined'
+      ? localStorage.getItem(TOKEN_KEY)
+      : null,
+  user: readStorage<any>(USER_KEY),
   setAuth: (token, user) => {
-    localStorage.setItem('token', token);
+    writeStorage(TOKEN_KEY, token);
+    writeStorage(USER_KEY, user);
     set({ token, user });
   },
   logout: () => {
-    localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+    }
     set({ token: null, user: null });
   },
 }));

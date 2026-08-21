@@ -1,17 +1,23 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api/api";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function OwnerDashboard() {
+  const user = useAuthStore((state) => state.user);
+  const businessId = user?.businessId as string | undefined;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["businessSummary"],
+    queryKey: ["businessSummary", businessId],
     queryFn: async () => {
-      const response = await api.get("/reports/summary");
+      const response = await api.get("/reports/summary", {
+        params: { businessId },
+      });
       return response.data;
     },
-    // This page is authenticated and fetches after login in the browser.
-    // Do not run the fetch during server-side static export (Vercel build).
-    enabled: typeof window !== "undefined",
+    // Only fetch in the browser, after the owner is authenticated
+    // and their business is known.
+    enabled: typeof window !== "undefined" && !!businessId,
   });
 
   if (isLoading || !data) return <div>Loading dashboard...</div>;

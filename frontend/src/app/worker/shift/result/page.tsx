@@ -1,16 +1,23 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function ShiftResult() {
+  const user = useAuthStore((state) => state.user);
+  const businessId = user?.businessId as string | undefined;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['shiftResult'],
+    queryKey: ['shiftResult', businessId],
     queryFn: async () => {
-      const response = await api.get('/reports/summary');
+      const response = await api.get('/reports/summary', {
+        params: { businessId },
+      });
       return response.data;
     },
-    // Run only in the browser; skip the server-side static export at build.
-    enabled: typeof window !== 'undefined',
+    // Run only in the browser, after the worker is authenticated and
+    // their business is known.
+    enabled: typeof window !== 'undefined' && !!businessId,
   });
 
   if (isLoading || !data) return <div>Calculating shift results...</div>;
