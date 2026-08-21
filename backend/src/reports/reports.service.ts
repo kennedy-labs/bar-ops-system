@@ -288,6 +288,125 @@ export class ReportsService {
     };
   }
 
+  async getSummary(filters: ReportFilterDto) {
+    await this.validateOwnership(filters);
+    const { businessId, branchId, startDate, endDate } = filters;
+
+    // 1. Revenue & Cost from Sales (ShiftStockItems)
+    const salesWhere: any = { product: { businessId } };
+    if (branchId) salesWhere.shift = { branchId };
+    if (startDate || endDate) {
+      salesWhere.createdAt = {};
+      if (startDate) salesWhere.createdAt.gte = new Date(startDate);
+      if (endDate) salesWhere.createdAt.lte = new Date(endDate);
+    }
+    const sales = await this.prisma.shiftStockItem.findMany({
+      where: salesWhere,
+      include: { product: true },
+    });
+
+    let totalRevenue = new Prisma.Decimal(0);
+    let totalCost = new Prisma.Decimal(0);
+    let totalUnitsSold = 0;
+
+    for (const sale of sales) {
+      const soldQty =
+        sale.openingQuantity -
+        (sale.closingQuantity || 0) +
+        (sale.addedQuantity || 0);
+      totalUnitsSold += soldQty;
+      totalRevenue = totalRevenue.plus(
+        new Prisma.Decimal(soldQty).times(sale.product.sellingPrice),
+      );
+
+      // Historical cost at sale time (latest effective cost).
+      const costHistory = await this.prisma.productCostHistory.findFirst({
+        where: { productId: sale.productId },
+        orderBy: { effectiveAt: 'desc' },
+      });
+      const costPrice = costHistory
+        ? new Prisma.Decimal(costHistory.costPrice)
+        : new Prisma.Decimal(0);
+      totalCost = totalCost.plus(new Prisma.Decimal(soldQty).times(costPrice));
+    }
+
+    // 2. Expenses
+    const expWhere: any = { branch: { businessId } };
+    if (branchId) expWhere.branchId = branchId;
+    if (startDate || endDate) {
+      expWhere.createdAt = {};
+      if (startDate) expWhere.createdAt.gte = new Date(startDate);
+      if (endDate) expWhere.createdAt.lte = new Date(endDate);
+    }
+    const expenses = await this.prisma.expense.findMany({ where: expWhere });
+    const totalExpenses = expenses.reduce(
+      (sum, e) => sum.plus(new Prisma.Decimal(e.amount)),
+      new Prisma.Decimal(0),
+    );
+
+    // 3. Mpesa received
+    const mpesaWhere: any = { businessId };
+    if (startDate || endDate) {
+      mpesaWhere.transactionTime = {};
+      if (startDate) mpesaWhere.transactionTime.gte = new Date(startDate);
+      if (endDate) mpesaWhere.transactionTime.lte = new Date(endDate);
+    }
+    const mpesaTransactions = await this.prisma.mpesaTransaction.findMany({
+      where: mpesaWhere,
+    });
+    const totalMpesaReceived = mpesaTransactions.reduce(
+      (sum, t) => sum.plus(t.amount),
+      new Prisma.Decimal(0),
+    );
+
+    // 4. Discrepancies (accountability)
+    const discWhere: any = { businessId };
+    if (branchId) discWhere.branchId = branchId;
+    if (startDate || endDate) {
+      discWhere.createdAt = {};
+      if (startDate) discWhere.createdAt.gte = new Date(startDate);
+      if (endDate) discWhere.createdAt.lte = new Date(endDate);
+    }
+    const discrepancies = await this.prisma.discrepancy.findMany({
+      where: discWhere,
+    });
+    const openDiscrepancies = discrepancies.filter(
+      (d) => d.status === 'OPEN',
+    ).length;
+
+    // 5. Active shifts (open operations)
+    const shiftWhere: any = { branch: { businessId } };
+    if (branchId) shiftWhere.branchId = branchId;
+    if (startDate || endDate) {
+      shiftWhere.openedAt = {};
+      if (startDate) shiftWhere.openedAt.gte = new Date(startDate);
+      if (endDate) shiftWhere.openedAt.lte = new Date(endDate);
+    }
+    const activeShifts = await this.prisma.shift.count({
+      where: { ...shiftWhere, closedAt: null },
+    });
+
+    const netProfit = totalRevenue.minus(totalCost).minus(totalExpenses);
+
+    return {
+      // Fields consumed by the owner dashboard
+      revenue: totalRevenue.toNumber(),
+      expenses: totalExpenses.toNumber(),
+      net: netProfit.toNumber(),
+      // Full/precise equivalents for the shift result & detailed views
+      totalRevenue: totalRevenue.toNumber(),
+      totalCost: totalCost.toNumber(),
+      totalExpenses: totalExpenses.toNumber(),
+      netProfit: netProfit.toNumber(),
+      totalUnitsSold,
+      totalMpesaReceived: totalMpesaReceived.toNumber(),
+      openDiscrepancies,
+      totalDiscrepancies: discrepancies.length,
+      activeShifts,
+      generatedAt: new Date(),
+    };
+  }
+
   async getShiftReport(filters: ReportFilterDto): Promise<any> {
     await this.validateOwnership(filters);
     const { businessId, branchId, shiftId } = filters;

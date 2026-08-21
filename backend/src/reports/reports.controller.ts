@@ -52,10 +52,9 @@ export class ReportsController {
     return this.reportsService.getDiscrepancyReport(filters);
   }
 
-  @ApiOperation({ summary: 'Get summary report' })
+  @ApiOperation({ summary: 'Get business summary report' })
   @Get('summary')
   async getSummaryReport(@Query() filters: ReportFilterDto) {
-    await this.reportsService.validateOwnership(filters);
-    // return this.reportsService.getSummary(filters);
+    return this.reportsService.getSummary(filters);
   }
 }
