@@ -17,8 +17,8 @@ export default function ShiftResult() {
       });
       return response.data;
     },
-    // Run only in the browser, after the worker is authenticated and
-    // their business is known.
+    // Run only in browser, after the worker is authenticated
+    // and their business is known.
     enabled: typeof window !== 'undefined' && !!businessId,
   });
 

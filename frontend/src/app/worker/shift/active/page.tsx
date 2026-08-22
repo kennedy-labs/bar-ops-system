@@ -1,5 +1,4 @@
 'use client';
-// Prevent static generation — client component
 export const dynamic = "force-dynamic";
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';

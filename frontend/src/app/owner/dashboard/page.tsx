@@ -1,10 +1,10 @@
 "use client";
 
-// Prevent static generation — uses client-side auth + queries
-export const dynamic = "force-dynamic";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useAuthStore } from "@/store/useAuthStore";
+
+export const dynamic = "force-dynamic";
 
 export default function OwnerDashboard() {
   const user = useAuthStore((state) => state.user);

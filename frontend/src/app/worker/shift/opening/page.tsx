@@ -1,10 +1,10 @@
 "use client";
-// Prevent static generation — client component with query
-export const dynamic = "force-dynamic";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default function OpeningStockVerification() {
   const router = useRouter();
@@ -14,8 +14,7 @@ export default function OpeningStockVerification() {
       const response = await api.get("/inventory-items");
       return response.data;
     },
-    // Only run in the browser after the worker is authenticated; skip the
-    // server-side static export during the Vercel build.
+    // Only fetch in the browser (avoids SSR during build export)
     enabled: typeof window !== "undefined",
   });
 
