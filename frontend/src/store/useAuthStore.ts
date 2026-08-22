@@ -2,7 +2,6 @@ import { create } from 'zustand';
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
-const DEMO_USER_KEY = 'demo_user';
 
 function readStorage<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;
@@ -43,25 +42,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, user: null });
   },
 }));
-
-// Auto-login as demo user on module load (security disabled for development)
-if (typeof window !== 'undefined') {
-  const storedUser = readStorage<any>(USER_KEY);
-  const storedToken = readStorage<string>(TOKEN_KEY);
-  const demoUser = readStorage<any>(DEMO_USER_KEY);
-
-  if (!storedUser || !storedToken) {
-    const fakeUser = demoUser || {
-      id: 'demo-user-1',
-      name: 'worker1',
-      businessId: 'joypub',
-      role: 'WORKER',
-    };
-    const fakeToken = storedToken || 'demo-token-' + Date.now();
-    writeStorage(TOKEN_KEY, fakeToken);
-    writeStorage(USER_KEY, fakeUser);
-    writeStorage(DEMO_USER_KEY, fakeUser);
-    // Initialize the store with the demo credentials
-    useAuthStore.getState().setAuth(fakeToken, fakeUser);
-  }
-}
