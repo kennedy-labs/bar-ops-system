@@ -1,5 +1,8 @@
 'use client';
 
+// Prevent static generation during build — only renders client-side
+export const dynamic = "force-dynamic";
+
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';

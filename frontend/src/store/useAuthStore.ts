@@ -26,6 +26,7 @@ interface AuthState {
   logout: () => void;
 }
 
+// Create the store first so we can initialize it
 export const useAuthStore = create<AuthState>((set) => ({
   token: readStorage<string>(TOKEN_KEY),
   user: readStorage<any>(USER_KEY),
@@ -43,14 +44,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-// Auto-login as demo user on page load (security disabled for development)
+// Auto-login as demo user on module load (security disabled for development)
 if (typeof window !== 'undefined') {
   const storedUser = readStorage<any>(USER_KEY);
   const storedToken = readStorage<string>(TOKEN_KEY);
   const demoUser = readStorage<any>(DEMO_USER_KEY);
 
   if (!storedUser || !storedToken) {
-    // Create a demo user session
     const fakeUser = demoUser || {
       id: 'demo-user-1',
       name: 'worker1',
@@ -61,6 +61,7 @@ if (typeof window !== 'undefined') {
     writeStorage(TOKEN_KEY, fakeToken);
     writeStorage(USER_KEY, fakeUser);
     writeStorage(DEMO_USER_KEY, fakeUser);
-    // We can't call set() here without the store instance, but localStorage will be read on next load
+    // Initialize the store with the demo credentials
+    useAuthStore.getState().setAuth(fakeToken, fakeUser);
   }
 }

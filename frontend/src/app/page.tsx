@@ -1,5 +1,6 @@
 import LoginForm from "@/components/LoginForm";
 
+// Prevent static generation — this page handles client-side auth routing
 export const dynamic = "force-dynamic";
 
 export default function Page() {

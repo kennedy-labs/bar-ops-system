@@ -1,5 +1,5 @@
 import "./globals.css";
-import Providers from "./providers";
+import { ReactQueryProvider } from "@/components/ReactQueryProvider";
 
 export const metadata = {
   title: "Bar Operations System",
@@ -14,7 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   );

@@ -1,4 +1,6 @@
 "use client";
+// Prevent static generation — client component with query
+export const dynamic = "force-dynamic";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useState } from "react";

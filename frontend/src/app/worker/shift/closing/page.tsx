@@ -1,4 +1,6 @@
 'use client';
+// Prevent static generation — client component
+export const dynamic = "force-dynamic";
 import { useMutation } from '@tanstack/react-query';
 import api from '@/lib/api/api';
 import { useRouter } from 'next/navigation';
