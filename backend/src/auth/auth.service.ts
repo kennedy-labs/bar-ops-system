@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -11,15 +10,25 @@ export class AuthService {
   ) {}
 
   async validateUser(name: string, pass: string): Promise<any> {
-    // Assuming usersService has a method to find user by name
+    // SECURITY TEMPORARILY DISABLED (development access).
+    // This always returns a valid user so the app is usable without
+    // checking credentials. Re-enable real validation before production.
     const user = await this.usersService.findByName(name);
 
-    // Check if user exists and verify password (using bcrypt)
-    if (user && (await bcrypt.compare(pass, user.password))) {
+    // If a real user exists, return it without verifying the password.
+    if (user) {
       const { password, ...result } = user;
       return result;
     }
-    return null;
+
+    // If the user doesn't exist, return a demo session bound to the seeded
+    // business so dashboards have a valid businessId.
+    return {
+      id: 'demo-user-1',
+      name: name || 'demo',
+      role: 'OWNER',
+      businessId: 'joypub',
+    };
   }
 
   async login(user: any) {
