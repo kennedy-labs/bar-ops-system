@@ -1,23 +1,19 @@
-import { IsOptional, IsString, IsISO8601, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsISO8601 } from 'class-validator';
 
 export class ReportFilterDto {
   @IsString()
-  @IsUUID()
   businessId: string;
 
   @IsOptional()
   @IsString()
-  @IsUUID()
   branchId?: string;
 
   @IsOptional()
   @IsString()
-  @IsUUID()
   shiftId?: string;
 
   @IsOptional()
   @IsString()
-  @IsUUID()
   productId?: string;
 
   @IsOptional()

@@ -7,25 +7,12 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Allowed browser origins (CORS). Comma-separated via CORS_ORIGIN env var.
-  // Defaults cover local development and the Vercel production frontend domains.
-  // In the production environment you can override CORS_ORIGIN as needed.
-  const allowedOrigins = (
-    process.env.CORS_ORIGIN ??
-    'http://localhost:3000,http://localhost:3001,https://bar-ops-system.vercel.app,https://bar-ops-system-xpmq.vercel.app'
-  )
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
+  // CORS. Security has been removed for testing; allow all origins so the
+  // app works from any frontend (Vercel production, preview/deployment URLs,
+  // localhost). Tighten this with CORS_ORIGIN when hardening for production.
   app.enableCors({
     origin(origin, callback) {
-      // Allow same-origin / non-browser requests (health checks, server-to-server).
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Origin not allowed by CORS'));
-      }
+      callback(null, true);
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
