@@ -8,9 +8,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Allowed browser origins (CORS). Comma-separated via CORS_ORIGIN env var.
-  // Defaults cover local development; add the production frontend URL in
-  // the production environment (e.g. the Vercel/custom frontend domain).
-  const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000,http://localhost:3001')
+  // Defaults cover local development and the Vercel production frontend domains.
+  // In the production environment you can override CORS_ORIGIN as needed.
+  const allowedOrigins = (
+    process.env.CORS_ORIGIN ??
+    'http://localhost:3000,http://localhost:3001,https://bar-ops-system.vercel.app,https://bar-ops-system-xpmq.vercel.app'
+  )
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);

@@ -1,9 +1,11 @@
 import axios from 'axios';
 
 // Resolve the backend API base URL.
-// In production this comes from NEXT_PUBLIC_API_URL (set in .env.production or
-// in the hosting provider's environment). Falls back to localhost for local dev.
-const apiBaseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// In production this comes from NEXT_PUBLIC_API_URL (set in the hosting provider's
+// environment, e.g. Vercel dashboard). It falls back to the deployed Render backend
+// so the frontend reliably reaches the live API even if the env var is missing.
+const apiBaseURL =
+  process.env.NEXT_PUBLIC_API_URL ?? 'https://bar-ops-system.onrender.com';
 
 const api = axios.create({
   baseURL: apiBaseURL,
