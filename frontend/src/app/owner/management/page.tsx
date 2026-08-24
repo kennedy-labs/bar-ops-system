@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import OwnerLayout from "@/app/owner/layout";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -53,14 +52,10 @@ export default function OwnerManagement() {
   const muBiz = useMutation({ mutationFn: async (p: any) => (await api.post("/businesses", p)).data, onSuccess: () => { qc.invalidateQueries({ queryKey: ["businesses"] }); setShowAddBusiness(false); } });
 
   if (!businessId)
-    return (
-      <OwnerLayout>
-        <main className="p-6"><p>Loading...</p></main>
-      </OwnerLayout>
-    );
+    return <main className="p-6"><p>Loading...</p></main>;
 
   return (
-    <OwnerLayout>
+    <>
       <main className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div><h1 className="text-3xl font-bold">Owner Management</h1><p className="text-gray-600 mt-1">Managing: {curBiz}</p></div>
@@ -103,7 +98,7 @@ export default function OwnerManagement() {
         {showAddBusiness && <BusinessForm onSuccess={() => setShowAddBusiness(false)} afterCreate={(nb: Business) => { const t = useAuthStore.getState().token ?? ""; useAuthStore.getState().setAuth(t, { ...user, businessId: nb.id, businessName: nb.name }); }} />}
         {editingUser && <UserForm editing={editingUser} onSuccess={() => setEditingUser(null)} />}
       </main>
-    </OwnerLayout>
+    </>
   );
 }
 

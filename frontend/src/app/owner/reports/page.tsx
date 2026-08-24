@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import OwnerLayout from "@/app/owner/layout";
 import { SummaryRefreshBus } from "@/components/reports/SummaryRefreshBus";
 
 export default function OwnerReports() {
@@ -30,7 +29,7 @@ export default function OwnerReports() {
   const { revenue = 0, expenses = 0, net = 0, shiftsClosed = 0, mpesaReceived = 0, discrepancies = 0 } = data;
 
   return (
-    <OwnerLayout>
+    <>
       <main className="p-6">
         <section className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <Tile label="Today's Revenue" value={`KES ${revenue.toLocaleString()}`} />
@@ -46,7 +45,7 @@ export default function OwnerReports() {
           <p className="text-sm text-gray-500">(Shift history detail — coming soon)</p>
         </section>
       </main>
-    </OwnerLayout>
+    </>
   );
 }
 

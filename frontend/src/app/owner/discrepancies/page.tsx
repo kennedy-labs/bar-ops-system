@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import OwnerLayout from "@/app/owner/layout";
 import { useState } from "react";
 
 export const dynamic = "force-dynamic";
@@ -66,14 +65,10 @@ export default function OwnerDiscrepancies() {
   const resolvedCount = (items ?? []).filter((d) => d.status === "RESOLVED").length;
 
   if (!businessId)
-    return (
-      <OwnerLayout>
-        <main className="p-6"><p>Loading...</p></main>
-      </OwnerLayout>
-    );
+    return <main className="p-6"><p>Loading...</p></main>;
 
   return (
-    <OwnerLayout>
+    <>
       <main className="p-6">
         <h1 className="text-3xl font-bold mb-6">Discrepancies</h1>
 
@@ -143,6 +138,6 @@ export default function OwnerDiscrepancies() {
           </table>
         )}
       </main>
-    </OwnerLayout>
+    </>
   );
 }

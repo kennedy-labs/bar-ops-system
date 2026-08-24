@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api/api";
 import { useAuthStore } from "@/store/useAuthStore";
-import OwnerLayout from "@/app/owner/layout";
 import { useState } from "react";
 
 export const dynamic = "force-dynamic";
@@ -67,14 +66,10 @@ export default function OwnerStock() {
   const totalUnits = (inventory ?? []).reduce((s, i) => s + Number(i.quantity), 0);
 
   if (!businessId)
-    return (
-      <OwnerLayout>
-        <main className="p-6"><p>Loading...</p></main>
-      </OwnerLayout>
-    );
+    return <main className="p-6"><p>Loading...</p></main>;
 
   return (
-    <OwnerLayout>
+    <>
       <main className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Stock</h1>
@@ -150,7 +145,7 @@ export default function OwnerStock() {
         {showAddProduct && <AddProductModal businessId={businessId} onClose={() => setShowAddProduct(false)} />}
         {showAddLocation && <AddLocationModal branches={branches ?? []} onClose={() => setShowAddLocation(false)} />}
       </main>
-    </OwnerLayout>
+    </>
   );
 }
 
