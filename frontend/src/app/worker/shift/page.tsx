@@ -16,13 +16,13 @@ export default function WorkerShift() {
   if (isLoading) return <div>Loading shift status...</div>;
 
   return (
-    <main className="p-6">
+    <section className="space-y-6">
       <h1 className="text-2xl font-bold">Worker Shift</h1>
       {data?.isActive ? (
         <p>Shift in progress. <a href="/worker/shift/closing" className="text-blue-600">Go to closing</a></p>
       ) : (
         <p>Please begin your shift opening procedure. <a href="/worker/shift/opening" className="text-blue-600">Start here</a></p>
       )}
-    </main>
+    </section>
   );
 }
