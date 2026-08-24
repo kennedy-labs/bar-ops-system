@@ -27,7 +27,7 @@ const ITEMS: NavItem[] = [
   { href: "/owner/reports", label: "Reports", icon: BarChart3, built: true },
   { href: "/owner/stock", label: "Stock", icon: Boxes, built: true },
   { href: "/owner/payments", label: "Payments", icon: Wallet, built: true },
-  { href: "/owner/discrepancies", label: "Discrepancies", icon: Receipt, built: false },
+  { href: "/owner/discrepancies", label: "Discrepancies", icon: Receipt, built: true },
   { href: "/owner/management", label: "Management", icon: Users, built: true },
 ];
 
