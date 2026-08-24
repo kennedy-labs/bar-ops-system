@@ -24,11 +24,11 @@ type NavItem = {
 
 const ITEMS: NavItem[] = [
   { href: "/owner/dashboard", label: "Overview", icon: LayoutDashboard, built: true },
-  { href: "/owner/reports", label: "Reports", icon: BarChart3, built: false },
+  { href: "/owner/reports", label: "Reports", icon: BarChart3, built: true },
   { href: "/owner/stock", label: "Stock", icon: Boxes, built: false },
-  { href: "/owner/payments", label: "Payments", icon: Wallet, built: false },
+  { href: "/owner/payments", label: "Payments", icon: Wallet, built: true },
   { href: "/owner/discrepancies", label: "Discrepancies", icon: Receipt, built: false },
-  { href: "/owner/management", label: "Management", icon: Users, built: false },
+  { href: "/owner/management", label: "Management", icon: Users, built: true },
 ];
 
 export default function OwnerSidebar({
