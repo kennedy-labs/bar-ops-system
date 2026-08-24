@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
+import { ShiftOpenDto } from './dto/shift-open.dto';
 import { ShiftsService } from './shifts.service';
 
 @Controller('shifts')
@@ -28,6 +29,11 @@ export class ShiftsController {
   @Post()
   create(@Body() body: CreateShiftDto) {
     return this.shiftsService.create(body);
+  }
+
+  @Post('open')
+  open(@Body() body: ShiftOpenDto) {
+    return this.shiftsService.open(body);
   }
 
   @Patch(':id')
