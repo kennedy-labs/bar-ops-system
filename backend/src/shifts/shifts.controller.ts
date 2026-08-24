@@ -10,11 +10,17 @@ import {
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { UpdateShiftDto } from './dto/update-shift.dto';
 import { ShiftOpenDto } from './dto/shift-open.dto';
+import { CloseShiftDto } from './dto/close-shift.dto';
 import { ShiftsService } from './shifts.service';
 
 @Controller('shifts')
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
+
+  @Post('close')
+  close(@Body() body: CloseShiftDto) {
+    return this.shiftsService.close(body);
+  }
 
   @Get()
   getAll() {

@@ -13,7 +13,7 @@ export default function ClosingShift() {
   });
 
   return (
-    <main className="p-6 space-y-6">
+    <section className="space-y-6">
       <h1 className="text-2xl font-bold">Closing Procedure</h1>
       <p>Please enter your final physical stock counts.</p>
       
@@ -23,6 +23,6 @@ export default function ClosingShift() {
       >
         FINALIZE & CLOSE SHIFT
       </button>
-    </main>
+    </section>
   );
 }
