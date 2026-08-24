@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -49,46 +48,8 @@ async function main() {
     });
   }
 
-  // 5. Create Worker User
-  const password = await bcrypt.hash('password123', 10);
-  const existingWorker = await prisma.user.findFirst({
-    where: { name: 'worker1', businessId: business.id },
-  });
-  if (existingWorker) {
-    await prisma.user.update({
-      where: { id: existingWorker.id },
-      data: { password, role: 'WORKER' },
-    });
-  } else {
-    await prisma.user.create({
-      data: {
-        name: 'worker1',
-        password,
-        role: 'WORKER',
-        businessId: business.id,
-      },
-    });
-  }
-
-  // 6. Create Owner User
-  const existingOwner = await prisma.user.findFirst({
-    where: { name: 'owner1', businessId: business.id },
-  });
-  if (existingOwner) {
-    await prisma.user.update({
-      where: { id: existingOwner.id },
-      data: { password, role: 'OWNER' },
-    });
-  } else {
-    await prisma.user.create({
-      data: {
-        name: 'owner1',
-        password,
-        role: 'OWNER',
-        businessId: business.id,
-      },
-    });
-  }
+  // 5-6. Demo users removed (worker1/owner1) — users are now created
+  // through the Owner Management page only.
 
   // 7. Create Initial Inventory
   const counterLocation = await prisma.stockLocation.upsert({
