@@ -73,6 +73,7 @@ model Branch {
   movements         StockMovement[]
   receiverTransfers Transfer[]      @relation("ReceiverTransfers")
   senderTransfers   Transfer[]      @relation("SenderTransfers")
+  users             User[]
 
   @@unique([businessId, name])
 }
@@ -134,7 +135,11 @@ model User {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   businessId        String
+  branchId          String?
   role              UserRole        @default(WORKER)
+  status            UserStatus      @default(ACTIVE)
+  phone             String?
+  email             String?
   password          String          @default("temporary_password")
   discrepancies     Discrepancy[]   @relation("UserDiscrepancies")
   expensesCreated   Expense[]       @relation("UserExpenses")
@@ -143,6 +148,7 @@ model User {
   receiverTransfers Transfer[]      @relation("ReceiverTransfers")
   senderTransfers   Transfer[]      @relation("SenderTransfers")
   business          Business        @relation(fields: [businessId], references: [id])
+  branch            Branch?         @relation(fields: [branchId], references: [id])
 }
 
 model InventoryItem {
@@ -303,6 +309,11 @@ enum UserRole {
   OWNER
   MANAGER
   WORKER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum StockLocationType {

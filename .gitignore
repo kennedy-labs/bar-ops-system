@@ -15,3 +15,7 @@ build/
 *.log
 .vscode/
 .idea/
+
+build_out.txt
+build_check.txt
+*_out.txt

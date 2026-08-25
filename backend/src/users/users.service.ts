@@ -5,8 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.user.findMany();
+  getAll(businessId?: string) {
+    return this.prisma.user.findMany({
+      where: businessId ? { businessId } : undefined,
+    });
   }
 
   getById(id: string) {
@@ -21,9 +23,18 @@ export class UsersService {
     });
   }
 
-  create(body: { name: string; businessId: string; password?: string }) {
+  create(body: {
+    name: string;
+    businessId: string;
+    branchId?: string;
+    role?: 'OWNER' | 'MANAGER' | 'WORKER';
+    status?: 'ACTIVE' | 'INACTIVE';
+    phone?: string;
+    email?: string;
+    password?: string;
+  }) {
     return this.prisma.user.create({
-      data: body,
+      data: body as any,
     });
   }
 
@@ -32,11 +43,16 @@ export class UsersService {
     body: Partial<{
       name: string;
       businessId: string;
+      branchId?: string;
+      role?: 'OWNER' | 'MANAGER' | 'WORKER';
+      status?: 'ACTIVE' | 'INACTIVE';
+      phone?: string;
+      email?: string;
     }>,
   ) {
     return this.prisma.user.update({
       where: { id },
-      data: body,
+      data: body as any,
     });
   }
 

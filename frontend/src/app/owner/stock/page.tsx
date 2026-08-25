@@ -32,7 +32,6 @@ export default function OwnerStock() {
   const user = useAuthStore((s) => s.user);
   const businessId = user?.businessId as string | undefined;
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [showAddLocation, setShowAddLocation] = useState(false);
   const enabled = !!businessId;
 
   const { data: products, isLoading: lp } = useQuery({
@@ -75,7 +74,6 @@ export default function OwnerStock() {
           <h1 className="text-3xl font-bold">Stock</h1>
           <div className="space-x-2">
             <button onClick={() => setShowAddProduct(true)} className="bg-green-600 text-white px-4 py-2 rounded">+ Add Product</button>
-            <button onClick={() => setShowAddLocation(true)} className="bg-indigo-600 text-white px-4 py-2 rounded">+ Add Location</button>
           </div>
         </div>
 
@@ -142,27 +140,38 @@ export default function OwnerStock() {
           )}
         </section>
 
-        {showAddProduct && <AddProductModal businessId={businessId} onClose={() => setShowAddProduct(false)} />}
-        {showAddLocation && <AddLocationModal branches={branches ?? []} onClose={() => setShowAddLocation(false)} />}
+        {showAddProduct && <AddProductModal businessId={businessId} branches={branches ?? []} onClose={() => setShowAddProduct(false)} />}
       </main>
     </>
   );
 }
 
-function AddProductModal({ businessId, onClose }: { businessId: string; onClose: () => void }) {
+function AddProductModal({ businessId, branches, onClose }: { businessId: string; branches: Branch[]; onClose: () => void }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  // Optional location (created together with the product)
+  const [locName, setLocName] = useState("");
+  const [locType, setLocType] = useState<"COUNTER" | "STORAGE">("COUNTER");
+  const [locBranchId, setLocBranchId] = useState(branches[0]?.id ?? "");
 
-  const handleSubmit = () => {
-    if (!name || !price || Number(price) <= 0) return alert("Enter a name and a positive price.");
-    api
-      .post("/products", { name, sellingPrice: Number(price), businessId })
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ["products", businessId] });
-        onClose();
-      })
-      .catch((e: any) => alert(e?.response?.data?.message || "Failed to create product"));
+  const handleSubmit = async () => {
+    if (!name || !price || Number(price) <= 0) return alert("Enter a product name and a positive price.");
+    try {
+      if (locName) {
+        await api.post("/stock-locations", {
+          branchId: locBranchId || branches[0]?.id,
+          name: locName,
+          type: locType,
+        });
+        qc.invalidateQueries({ queryKey: ["stockLocations"] });
+      }
+      await api.post("/products", { name, sellingPrice: Number(price), businessId });
+      qc.invalidateQueries({ queryKey: ["products", businessId] });
+      onClose();
+    } catch (e: any) {
+      alert(e?.response?.data?.message || "Failed to save");
+    }
   };
 
   return (
@@ -171,6 +180,18 @@ function AddProductModal({ businessId, onClose }: { businessId: string; onClose:
         <h3 className="font-bold mb-4">Add Product</h3>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product Name (e.g. Tusker 500ml)" className="border p-2 rounded w-full mb-2" />
         <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" placeholder="Selling Price (KES)" className="border p-2 rounded w-full mb-2" />
+
+        <hr className="my-3" />
+        <p className="text-sm text-gray-600 mb-2">Optional — also create a stock location for this product:</p>
+        <input value={locName} onChange={(e) => setLocName(e.target.value)} placeholder="Location Name (e.g. Main Counter)" className="border p-2 rounded w-full mb-2" />
+        <select value={locType} onChange={(e) => setLocType(e.target.value as "COUNTER" | "STORAGE")} className="border p-2 rounded w-full mb-2">
+          <option value="COUNTER">Counter</option>
+          <option value="STORAGE">Storage</option>
+        </select>
+        <select value={locBranchId} onChange={(e) => setLocBranchId(e.target.value)} className="border p-2 rounded w-full mb-2">
+          {branches.length ? branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>) : <option value="">No branches available</option>}
+        </select>
+
         <div className="flex gap-2">
           <button onClick={handleSubmit} className="flex-1 bg-green-600 text-white p-2 rounded">Create</button>
           <button onClick={onClose} className="flex-1 bg-gray-300 p-2 rounded">Cancel</button>
@@ -180,40 +201,3 @@ function AddProductModal({ businessId, onClose }: { businessId: string; onClose:
   );
 }
 
-function AddLocationModal({ branches, onClose }: { branches: Branch[]; onClose: () => void }) {
-  const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [type, setType] = useState<"COUNTER" | "STORAGE">("COUNTER");
-  const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
-
-  const handleSubmit = () => {
-    if (!name || !branchId) return alert("Enter a name" + (branches.length ? " and pick a branch." : ". (No branches exist yet — create one first.)"));
-    api
-      .post("/stock-locations", { name, type, branchId })
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ["stockLocations"] });
-        onClose();
-      })
-      .catch((e: any) => alert(e?.response?.data?.message || "Failed to create location"));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded w-full max-w-md mx-2">
-        <h3 className="font-bold mb-4">Add Stock Location</h3>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Location Name (e.g. Main Counter)" className="border p-2 rounded w-full mb-2" />
-        <select value={type} onChange={(e) => setType(e.target.value as "COUNTER" | "STORAGE")} className="border p-2 rounded w-full mb-2">
-          <option value="COUNTER">Counter</option>
-          <option value="STORAGE">Storage</option>
-        </select>
-        <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="border p-2 rounded w-full mb-2">
-          {branches.length ? branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>) : <option value="">No branches available</option>}
-        </select>
-        <div className="flex gap-2">
-          <button onClick={handleSubmit} className="flex-1 bg-indigo-600 text-white p-2 rounded">Create</button>
-          <button onClick={onClose} className="flex-1 bg-gray-300 p-2 rounded">Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
