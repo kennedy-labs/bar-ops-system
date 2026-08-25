@@ -7,8 +7,10 @@ import { UpdateStockLocationDto } from './dto/update-stock-location.dto';
 export class StockLocationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.stockLocation.findMany();
+  getAll(businessId?: string) {
+    return this.prisma.stockLocation.findMany({
+      where: businessId ? { businessId } : undefined,
+    });
   }
 
   getById(id: string) {
@@ -17,9 +19,25 @@ export class StockLocationsService {
     });
   }
 
-  create(body: CreateStockLocationDto) {
+  async create(body: CreateStockLocationDto) {
+    let businessId = body.businessId;
+    if (!businessId) {
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: body.branchId },
+        select: { businessId: true },
+      });
+      if (!branch) throw new Error('Branch not found');
+      businessId = branch.businessId;
+    }
     return this.prisma.stockLocation.create({
-      data: body,
+      data: {
+        businessId,
+        branchId: body.branchId,
+        name: body.name,
+        type: body.type,
+        description: body.description,
+        status: body.status,
+      },
     });
   }
 

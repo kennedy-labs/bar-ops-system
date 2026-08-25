@@ -54,6 +54,7 @@ model Business {
   mpesaTransactions MpesaTransaction[]
   products          Product[]
   stockMovements    StockMovement[]    @relation("BusinessStockMovements")
+  stockLocations    StockLocation[]
   transfers         Transfer[]
   users             User[]
 }
@@ -68,11 +69,11 @@ model Branch {
   discrepancies     Discrepancy[]
   expenses          Expense[]
   inventory         InventoryItem[]
-  shifts            Shift[]
-  stockLocations    StockLocation[]
   movements         StockMovement[]
   receiverTransfers Transfer[]      @relation("ReceiverTransfers")
   senderTransfers   Transfer[]      @relation("SenderTransfers")
+  shifts            Shift[]
+  stockLocations    StockLocation[]
   users             User[]
 
   @@unique([businessId, name])
@@ -191,15 +192,19 @@ model StockMovement {
 }
 
 model StockLocation {
-  id        String            @id @default(cuid())
-  branchId  String
-  name      String
-  type      StockLocationType
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  inventory InventoryItem[]
-  branch    Branch            @relation(fields: [branchId], references: [id])
-  movements StockMovement[]
+  id          String            @id @default(cuid())
+  businessId  String
+  branchId    String
+  name        String
+  type        StockLocationType
+  description String?
+  status      StockLocationStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  inventory   InventoryItem[]
+  business    Business          @relation(fields: [businessId], references: [id])
+  branch      Branch            @relation(fields: [branchId], references: [id])
+  movements   StockMovement[]
 }
 
 model ShiftStockItem {
@@ -319,6 +324,11 @@ enum UserStatus {
 enum StockLocationType {
   COUNTER
   STORAGE
+}
+
+enum StockLocationStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum TransferStatus {

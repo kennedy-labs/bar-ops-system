@@ -13,25 +13,21 @@
 
 Goal: stop the `"property X should not exist"` failures and make owner CRUD forms work.
 
-- [ ] **P1-1 Backend:** Fix global validation pipe. `main.ts` uses Nest `ValidationPipe`
-      (`class-validator`) but all DTOs use `createZodDto` (`nestjs-zod`). Switch to the Zod
-      pipe so validated DTOs actually whitelist the correct fields.
-      - _Why:_ root cause of `property name/sellingPrice/businessId should not exist`.
-- [ ] **P1-2 Backend:** Extend `User` model per `USERS_ARCHITECTURE`: add `branchId`,
-      `phone`, `email`, `status`. Update `CreateUserDto` + `UpdateUserDto` to accept
-      `phone`, `password`, `role`, `status`. Add migration.
-      - _Why:_ current `User` DTO/model drops `phone` + `password` the UI sends.
-- [ ] **P1-3 Backend:** fix `users.controller.getAll()` to filter by `businessId` query
-      (currently returns all users across every business — breaks multi-branch isolation).
-      - _Also:_ `stock-locations` should scope by branch/business.
-- [ ] **P1-4 Frontend:** Align Owner Management forms to the (fixed) backend contract —
-      payloads already send name/phone/role/password/businessId; verify they match the new
-      DTO after P1-2, and that the Users list refreshes per selected business.
-- [ ] **P1-5 Frontend:** Align Stock page: Add Location should appear **inside Add Product**
-      (currently independent + wrong). Reconcile location form (name/type/branch) to the
-      backend `CreateStockLocationDto`.
-- [ ] **P1-6 Verify:** build + test the 4 forms (Business, User, Product, Stock Location)
-      end-to-end (UI → backend → DB) before moving to Phase 2.
+- [x] **P1-1 Backend:** Fix global validation pipe. `main.ts` uses Nest `ValidationPipe`
+      (`class-validator`) but all DTOs use `createZodDto` (`nestjs-zod`). Switched to
+      `ZodValidationPipe`. — _DONE, consumer-tested._
+- [x] **P1-2 Backend:** Extend `User` model per `USERS_ARCHITECTURE`: added `branchId`,
+      `phone`, `email`, `status`. Updated `CreateUserDto` + `UpdateUserDto` to accept
+      `phone`, `password`, `role`, `status`. Migration added. — _DONE._
+- [x] **P1-3 Backend:** `users.controller.getAll()` now filters by `businessId` query
+      (was returning all users across every business). — _DONE._
+- [x] **P1-4 Frontend:** Align Owner Management forms to the fixed backend contract —
+      payloads (name/phone/role/password/businessId) match the new DTO; users list
+      refreshes per selected business. — _DONE._
+- [x] **P1-5 Frontend:** Stock page — Add Location folded **inside** Add Product (was
+      independent + wrong); fields reconciled to `CreateStockLocationDto`. — _DONE._
+- [x] **P1-6 Verify:** build + test the 4 forms (Business, User, Product, Stock Location)
+      end-to-end. — _DONE: consumer confirmed success._
 
 ---
 

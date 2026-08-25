@@ -54,12 +54,13 @@ async function main() {
   // 7. Create Initial Inventory
   const counterLocation = await prisma.stockLocation.upsert({
     where: { id: 'counter-main' },
-    update: { name: 'Counter', type: 'COUNTER', branchId: branch.id },
+    update: { name: 'Counter', type: 'COUNTER', branchId: branch.id, businessId: business.id },
     create: {
       id: 'counter-main',
       name: 'Counter',
       type: 'COUNTER',
       branchId: branch.id,
+      businessId: business.id,
     },
   });
 

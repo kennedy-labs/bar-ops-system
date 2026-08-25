@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CreateStockLocationDto } from './dto/create-stock-location.dto';
 import { UpdateStockLocationDto } from './dto/update-stock-location.dto';
@@ -16,8 +17,8 @@ export class StockLocationsController {
   constructor(private readonly stockLocationsService: StockLocationsService) {}
 
   @Get()
-  getAll() {
-    return this.stockLocationsService.getAll();
+  getAll(@Query('businessId') businessId?: string) {
+    return this.stockLocationsService.getAll(businessId);
   }
 
   @Get(':id')
