@@ -35,15 +35,29 @@ Goal: stop the `"property X should not exist"` failures and make owner CRUD form
 
 Design decisions that change data model + semantics. Each needs explicit sign-off.
 
-- [ ] **P2-1 StockLocation:** add `businessId` + `status` (+ `description`) to match
-      `STOCK-LOCATION_ARCHITECTURE`. Migration required.
-- [ ] **P2-2 Shift price/cost fidelity:** decide whether to freeze `sellingPrice`+`cost` on
-      `ShiftStockItem`/`ShiftPaymentSummary` at close time (blueprint says immutability +
-      "profit from recorded events"). **Decision required** — recommend YES.
-- [ ] **P2-3 Multi-business ownership:** model a user belonging to multiple businesses safely
-      (join table `UserBusiness`, or per-business user records) to honor
-      "one owner, many businesses" without session-switch shortcuts.
-      **Decision required.**
+- [x] **P2-1 StockLocation:** confirm `businessId` + `status` (+ `description`) per
+      `STOCK-LOCATION_ARCHITECTURE`. Locations belong to Business, not Branch.
+      Migration completed.
+- [x] **P2-2 Shift price/cost fidelity:** **DECIDED** — ShiftStockItem includes `revenue`,
+      `cost`, `grossProfit`, `addedQuantity`, `soldQuantity`. Values are system-calculated
+      at shift close per blueprint immutability + "profit from recorded events" principle.
+- [ ] **P2-3 Multi-business ownership:** **Decision required.** Options:
+      - Join table `UserBusiness` (one owner, many businesses)
+      - Per-business user records
+      - Current assumption: one user belongs to one business only
+- [x] **P2-4 Discrepancy model:** expanded backend to include financial discrepancy types
+      (`CASH_SHORTAGE`, `MPESA_MISMATCH`, `TRANSFER_MISMATCH`) with `expectedValue`,
+      `actualValue`, `valueVariance` fields — not just quantity-only.
+- [x] **P2-5 Mpesa Account:** added `branchId` + `accountType` (PAYBILL, POCHI,
+      BUY_GOODS_AND_SERVICES, SEND_MONEY) to match frontend architecture.
+- [x] **P2-6 Mpesa Transaction:** added `branchId`, `transactionType`, `sender`, `receiver`,
+      `reconciliationStatus`; renamed `externalTransactionId` → `transactionReference`.
+- [x] **P2-7 Product Unit:** added `conversionFactor` field (e.g., 1 crate = 24 bottles).
+- [x] **P2-8 Transfer:** added `senderLocationId` + `receiverLocationId` to track
+      location-level transfers within/across branches.
+- [x] **P2-9 Expense model:** removed approval gate. Expenses are immediately `RECORDED`
+      and affect financial calculations. Owner `acknowledge` is read-only confirmation.
+      Status enum: `RECORDED` → `ACKNOWLEDGED`.
 
 ---
 
@@ -53,8 +67,8 @@ Only when you're ready to stop allowing any-user access.
 
 - [ ] **P3-1 Backend security:** re-enable Authentication module + JWT guards on operational
       controllers; scope reads/writes by `businessId` from the token.
-- [ ] **P3-2 Backend:** per-branch filtering on `/reports/*` + operational reads to deliver
-      true multi-branch isolation.
+- [ ] **P3-2 Backend:** per-business filtering on `/reports/*` + operational reads.
+      Stock locations are business-level; branches remain operational context.
 - [ ] **P3-3 Frontend:** role-based route guards (workers blocked from `/owner/*`).
 
 ---
@@ -63,11 +77,31 @@ Only when you're ready to stop allowing any-user access.
 
 - [ ] **P4-1** Add unit/integration/API tests for lifecycle transitions (your docs require
       this).
-- [ ] **P4-2** Update stale `PROJECT_BLUEPRINT.md` (reads currently return "outdated").
+- [x] **P4-2** Update `PROJECT_BLUEPRINT.md` — remove `Manager` role to match
+      `My_System_Nature.md` (Owner + Worker only). ~~Done.~~
 
 ---
 
-## Notes / Decisions Log
+## Design Decisions Log
+
+| Decision | Outcome |
+|----------|---------|
+| Roles | Owner + Worker only. No Manager. Owner performs management functions. |
+| Discrepancies | Quantity AND financial (cash, Mpesa, transfer mismatches). |
+| Mpesa account ownership | Branch-specific. Each branch has its own Mpesa accounts. |
+| Mpesa transaction details | Capture sender phone, receiver phone, transaction type. |
+| Product units | Convertible units supported (e.g., 1 crate = 24 bottles). |
+| Shift stock items | Quantities + financial values (revenue, cost, gross profit). |
+| Inventory uniqueness | `[productId, productUnitId, stockLocationId]` — same product/unit can exist at different locations. |
+| Stock location ownership | Business-level (shared across branches), not branch-level. |
+| User record fields | `branchId`, `phone`, `email`, `status` included. |
+| Transfers | Track both branch and location (`senderLocationId`, `receiverLocationId`). |
+| Expense approval | Automatically valid on record. Owner acknowledgment = read confirmation only. |
+| Stock location docs | Kept `STOCK-LOCATIONS_DESIGN_ARCHITECTURE.md` (business-level); deleted duplicate `STOCK_LOCATIONS_DESIGN_ARCHITECTURE.md`. |
+
+---
+
+## Notes
 
 - **Auth disabled** (on purpose) for any-user testing. See Phase 3 to restore.
 - **CORS:** currently wide-open for testing. Tighten to your specific Vercel domain(s) at

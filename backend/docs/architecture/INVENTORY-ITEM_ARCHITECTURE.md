@@ -266,7 +266,7 @@ Inventory Items provide the live stock state used throughout the system.
 - Every Inventory Item belongs to exactly one Product.
 - Every Inventory Item belongs to exactly one Product Unit.
 - Every Inventory Item belongs to exactly one Stock Location.
-- A Product Unit can exist only once within the same Stock Location.
+- A Product Unit can exist only once within the same Product and Stock Location.
 - Inventory quantity cannot become negative.
 - Inventory quantities are modified only by Stock Movements.
 - Inventory represents the current stock state only.
@@ -318,7 +318,7 @@ Restricted:
 ## Data Integrity
 
 - Every Inventory Item references existing Business, Branch, Product, Product Unit, and Stock Location records.
-- Only one Inventory Item exists per Product Unit per Stock Location.
+- Only one Inventory Item exists per Product, Product Unit, and Stock Location combination.
 - Inventory quantity must never be negative.
 - Inventory state must always be derivable from Stock Movements.
 
@@ -352,7 +352,7 @@ model InventoryItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([productUnitId, stockLocationId])
+  @@unique([productId, productUnitId, stockLocationId])
 }
 ```
 

@@ -10,12 +10,15 @@ datasource db {
 model MpesaAccount {
   id                String             @id @default(cuid())
   businessId        String
+  branchId          String
   accountIdentifier String
   displayName       String
+  accountType       MpesaAccountType
   status            MpesaAccountStatus @default(ACTIVE)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   business          Business           @relation(fields: [businessId], references: [id])
+  branch            Branch             @relation(fields: [branchId], references: [id])
   transactions      MpesaTransaction[]
 
   @@unique([businessId, accountIdentifier])
@@ -24,19 +27,26 @@ model MpesaAccount {
 model MpesaTransaction {
   id                    String                 @id @default(cuid())
   businessId            String
+  branchId              String
   mpesaAccountId        String
   shiftId               String?
-  externalTransactionId String
+  transactionReference  String
+  transactionType       MpesaTransactionType
   amount                Decimal
   transactionTime       DateTime
+  sender                String?
+  receiver              String?
+  status                MpesaTransactionStatus @default(RECEIVED)
+  reconciliationStatus  MpesaReconciliationStatus @default(UNRECONCILED)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
-  status                MpesaTransactionStatus @default(RECEIVED)
   business              Business               @relation(fields: [businessId], references: [id])
   mpesaAccount          MpesaAccount           @relation(fields: [mpesaAccountId], references: [id])
   shift                 Shift?                 @relation(fields: [shiftId], references: [id])
 
-  @@unique([mpesaAccountId, externalTransactionId])
+  @@unique([mpesaAccountId, transactionReference])
+  @@index([businessId, transactionTime])
+  @@index([shiftId])
 }
 
 model Business {
@@ -56,7 +66,7 @@ model Business {
   stockMovements    StockMovement[]    @relation("BusinessStockMovements")
   stockLocations    StockLocation[]
   transfers         Transfer[]
-  users             User[]
+  userBusinesses    UserBusiness[]
 }
 
 model Branch {
@@ -69,11 +79,11 @@ model Branch {
   discrepancies     Discrepancy[]
   expenses          Expense[]
   inventory         InventoryItem[]
+  shifts            Shift[]
   movements         StockMovement[]
+  mpesaAccounts     MpesaAccount[]
   receiverTransfers Transfer[]      @relation("ReceiverTransfers")
   senderTransfers   Transfer[]      @relation("SenderTransfers")
-  shifts            Shift[]
-  stockLocations    StockLocation[]
   users             User[]
 
   @@unique([businessId, name])
@@ -93,6 +103,7 @@ model Product {
   shiftStockItems ShiftStockItem[]
   movements       StockMovement[]
   transferItems   TransferItem[]
+  discrepancies   Discrepancy[]
 
   @@unique([businessId, name])
 }
@@ -108,26 +119,37 @@ model ProductCostHistory {
 }
 
 model Expense {
-  id            String        @id @default(cuid())
-  amount        Float
-  description   String?
-  branchId      String
-  createdById   String?
-  createdAt     DateTime      @default(now())
-  discrepancies Discrepancy[]
-  branch        Branch        @relation(fields: [branchId], references: [id])
-  createdBy     User?         @relation("UserExpenses", fields: [createdById], references: [id])
+  id                  String        @id @default(cuid())
+  amount              Float
+  description         String?
+  branchId            String
+  createdById         String?
+  status              ExpenseStatus @default(RECORDED)
+  acknowledgedByUserId String?
+  acknowledgedAt      DateTime?
+  createdAt           DateTime      @default(now())
+  discrepancies       Discrepancy[]
+  branch              Branch        @relation(fields: [branchId], references: [id])
+  createdBy           User?         @relation("UserExpenses", fields: [createdById], references: [id])
+  acknowledgedBy       User?         @relation("UserAcknowledgedExpenses", fields: [acknowledgedByUserId], references: [id])
 }
 
 model ProductUnit {
   id             String          @id @default(cuid())
   productId      String
   name           String
+  symbol         String
+  quantity       Decimal
+  conversionFactor Decimal?
+  isDefault      Boolean         @default(false)
+  status         ProductUnitStatus @default(ACTIVE)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   product        Product         @relation(fields: [productId], references: [id])
   stockMovements StockMovement[]
   transferItems  TransferItem[]
+  inventoryItems InventoryItem[]
+  shiftStockItems ShiftStockItem[]
 }
 
 model User {
@@ -135,21 +157,34 @@ model User {
   name              String
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  businessId        String
-  branchId          String?
   role              UserRole        @default(WORKER)
   status            UserStatus      @default(ACTIVE)
   phone             String?
   email             String?
   password          String          @default("temporary_password")
+  branchId          String?
   discrepancies     Discrepancy[]   @relation("UserDiscrepancies")
   expensesCreated   Expense[]       @relation("UserExpenses")
+  expensesAcknowledged Expense[]    @relation("UserAcknowledgedExpenses")
   shifts            Shift[]
   stockMovements    StockMovement[]
   receiverTransfers Transfer[]      @relation("ReceiverTransfers")
   senderTransfers   Transfer[]      @relation("SenderTransfers")
-  business          Business        @relation(fields: [businessId], references: [id])
+  userBusinesses    UserBusiness[]
   branch            Branch?         @relation(fields: [branchId], references: [id])
+}
+
+model UserBusiness {
+  id         String      @id @default(cuid())
+  userId     String
+  businessId String
+  role       UserRole    @default(WORKER)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id])
+  business   Business    @relation(fields: [businessId], references: [id])
+
+  @@unique([userId, businessId])
 }
 
 model InventoryItem {
@@ -159,12 +194,14 @@ model InventoryItem {
   updatedAt       DateTime       @updatedAt
   branchId        String
   productId       String
+  productUnitId   String
   stockLocationId String?
   branch          Branch         @relation(fields: [branchId], references: [id])
   product         Product        @relation(fields: [productId], references: [id])
+  productUnit     ProductUnit    @relation(fields: [productUnitId], references: [id])
   stockLocation   StockLocation? @relation(fields: [stockLocationId], references: [id])
 
-  @@unique([branchId, productId])
+  @@unique([branchId, productId, productUnitId])
 }
 
 model StockMovement {
@@ -192,32 +229,44 @@ model StockMovement {
 }
 
 model StockLocation {
-  id          String            @id @default(cuid())
-  businessId  String
-  branchId    String
-  name        String
-  type        StockLocationType
+  id        String            @id @default(cuid())
+  businessId String
+  name      String
+  type      StockLocationType
   description String?
-  status      StockLocationStatus @default(ACTIVE)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  inventory   InventoryItem[]
-  business    Business          @relation(fields: [businessId], references: [id])
-  branch      Branch            @relation(fields: [branchId], references: [id])
-  movements   StockMovement[]
+  status    StockLocationStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  business          Business          @relation(fields: [businessId], references: [id])
+  inventory         InventoryItem[]
+  movements         StockMovement[]
+  shiftStockItems   ShiftStockItem[]
+  receivedTransfers Transfer[]        @relation("ReceiverLocationTransfers")
+  sentTransfers     Transfer[]        @relation("SenderLocationTransfers")
+  discrepancies     Discrepancy[]
 }
 
 model ShiftStockItem {
   id              String   @id @default(cuid())
   shiftId         String
   productId       String
+  businessId      String
+  branchId        String
+  productUnitId   String
+  stockLocationId String?
   openingQuantity Int
-  addedQuantity   Int?     @default(0)
-  closingQuantity Int?     @default(0)
+  addedQuantity   Int      @default(0)
+  closingQuantity Int?
+  soldQuantity    Int?
+  revenue         Decimal?
+  cost            Decimal?
+  grossProfit     Decimal?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   product         Product  @relation(fields: [productId], references: [id])
   shift           Shift    @relation(fields: [shiftId], references: [id])
+  productUnit     ProductUnit @relation(fields: [productUnitId], references: [id])
+  stockLocation   StockLocation? @relation(fields: [stockLocationId], references: [id])
 }
 
 model Transfer {
@@ -229,16 +278,20 @@ model Transfer {
   businessId       String
   dispatchedAt     DateTime?
   receiverBranchId String
+  receiverLocationId String?
   receiverUserId   String?
   senderBranchId   String
+  senderLocationId String?
   senderUserId     String
   updatedAt        DateTime        @updatedAt
   discrepancies    Discrepancy[]
   stockMovements   StockMovement[]
   business         Business        @relation(fields: [businessId], references: [id])
   receiverBranch   Branch          @relation("ReceiverTransfers", fields: [receiverBranchId], references: [id])
+  receiverLocation StockLocation?  @relation("ReceiverLocationTransfers", fields: [receiverLocationId], references: [id])
   receiverUser     User?           @relation("ReceiverTransfers", fields: [receiverUserId], references: [id])
   senderBranch     Branch          @relation("SenderTransfers", fields: [senderBranchId], references: [id])
+  senderLocation   StockLocation?  @relation("SenderLocationTransfers", fields: [senderLocationId], references: [id])
   senderUser       User            @relation("SenderTransfers", fields: [senderUserId], references: [id])
   items            TransferItem[]
 }
@@ -263,11 +316,16 @@ model Discrepancy {
   transferId      String?
   stockMovementId String?
   expenseId       String?
+  productId       String?
+  locationId       String?
   createdById     String?
   createdAt       DateTime          @default(now())
   actualValue     Decimal
   businessId      String
   expectedValue   Decimal
+  expectedQuantity Int?
+  actualQuantity   Int?
+  quantityDifference Int?
   resolution      String?
   sourceReference String            @unique
   status          DiscrepancyStatus @default(OPEN)
@@ -281,6 +339,8 @@ model Discrepancy {
   shift           Shift?            @relation(fields: [shiftId], references: [id])
   stockMovement   StockMovement?    @relation(fields: [stockMovementId], references: [id])
   transfer        Transfer?         @relation(fields: [transferId], references: [id])
+  product         Product?          @relation(fields: [productId], references: [id])
+  location         StockLocation?    @relation(fields: [locationId], references: [id])
 
   @@index([businessId, status])
   @@index([branchId, createdAt])
@@ -312,7 +372,6 @@ enum MovementType {
 
 enum UserRole {
   OWNER
-  MANAGER
   WORKER
 }
 
@@ -344,10 +403,29 @@ enum MpesaAccountStatus {
   INACTIVE
 }
 
+enum MpesaAccountType {
+  PAYBILL
+  POCHI
+  BUY_GOODS_AND_SERVICES
+  SEND_MONEY
+}
+
+enum MpesaTransactionType {
+  PAYBILL
+  POCHI
+  BUY_GOODS_AND_SERVICES
+  SEND_MONEY
+}
+
 enum MpesaTransactionStatus {
   RECEIVED
   RECONCILED
   DISPUTED
+}
+
+enum MpesaReconciliationStatus {
+  UNRECONCILED
+  RECONCILED
 }
 
 enum DiscrepancyType {
@@ -361,4 +439,14 @@ enum DiscrepancyType {
 enum DiscrepancyStatus {
   OPEN
   RESOLVED
+}
+
+enum ProductUnitStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ExpenseStatus {
+  RECORDED
+  ACKNOWLEDGED
 }

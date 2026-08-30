@@ -16,14 +16,15 @@ describe('TransfersService', () => {
       findUnique: jest.fn(),
     },
     branch: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({ id: 'branch1', businessId: 'biz1' }),
     },
     user: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({ id: 'user1', businessId: 'biz1' }),
     },
     transfer: {
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'transfer1', businessId: 'biz1', status: 'PENDING', senderUserId: 'user1' }),
       update: jest.fn(),
       delete: jest.fn(),
       findMany: jest.fn(),
@@ -42,8 +43,14 @@ describe('TransfersService', () => {
       update: jest.fn(),
       create: jest.fn(),
     },
+    stockLocation: {
+      findFirst: jest.fn().mockResolvedValue({ id: 'loc1', businessId: 'biz1' }),
+    },
     stockMovement: {
       createMany: jest.fn(),
+    },
+    userBusiness: {
+      findFirst: jest.fn().mockResolvedValue({ userId: 'user1', businessId: 'biz1' }),
     },
     $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
@@ -71,6 +78,8 @@ describe('TransfersService', () => {
         businessId: 'biz1',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch2',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
         notes: 'Transfer notes',
       };
@@ -94,7 +103,7 @@ describe('TransfersService', () => {
         status: 'PENDING',
       });
 
-      const result = await service.create(body);
+      const result = await service.create('biz1', body);
 
       expect(result).toBeDefined();
       expect(result.id).toBe('transfer1');
@@ -109,10 +118,12 @@ describe('TransfersService', () => {
         businessId: 'biz1',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch1',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
       };
 
-      await expect(service.create(body)).rejects.toThrow(BadRequestException);
+      await expect(service.create('biz1', body)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException if business does not exist', async () => {
@@ -120,12 +131,14 @@ describe('TransfersService', () => {
         businessId: 'biz-invalid',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch2',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
       };
 
       mockPrisma.business.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(body)).rejects.toThrow(NotFoundException);
+      await expect(service.create('biz-invalid', body)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -149,7 +162,7 @@ describe('TransfersService', () => {
       ]);
       mockPrisma.transferItem.createMany.mockResolvedValue({ count: 1 });
 
-      const result = await service.addItems(transferId, body);
+      const result = await service.addItems(transferId, 'biz1', body);
 
       expect(result).toBeDefined();
       expect(mockPrisma.transferItem.createMany).toHaveBeenCalledWith({
@@ -175,7 +188,7 @@ describe('TransfersService', () => {
         status: 'SENDER_CONFIRMED',
       });
 
-      await expect(service.addItems(transferId, body)).rejects.toThrow(
+      await expect(service.addItems(transferId, 'biz1', body)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -190,6 +203,8 @@ describe('TransfersService', () => {
         businessId: 'biz1',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch2',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
         status: 'PENDING',
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
@@ -209,7 +224,7 @@ describe('TransfersService', () => {
         status: 'SENDER_CONFIRMED',
       });
 
-      const result = await service.dispatch(transferId, dto);
+      const result = await service.dispatch(transferId, 'biz1', dto);
 
       expect(result).toBeDefined();
       expect(result.status).toBe('SENDER_CONFIRMED');
@@ -244,6 +259,8 @@ describe('TransfersService', () => {
         businessId: 'biz1',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch2',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
         status: 'PENDING',
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
@@ -255,7 +272,7 @@ describe('TransfersService', () => {
         businessId: 'biz1',
       });
 
-      await expect(service.dispatch(transferId, dto)).rejects.toThrow(
+      await expect(service.dispatch(transferId, 'biz1', dto)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -268,6 +285,8 @@ describe('TransfersService', () => {
         businessId: 'biz1',
         senderBranchId: 'branch1',
         receiverBranchId: 'branch2',
+        senderLocationId: 'loc1',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
         status: 'PENDING',
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 15 }],
@@ -283,7 +302,7 @@ describe('TransfersService', () => {
         quantity: 10,
       }); // Insufficient! (10 < 15)
 
-      await expect(service.dispatch(transferId, dto)).rejects.toThrow(
+      await expect(service.dispatch(transferId, 'biz1', dto)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -302,7 +321,7 @@ describe('TransfersService', () => {
         status: 'PENDING',
       });
 
-      const result = await service.remove(transferId);
+      const result = await service.remove(transferId, 'biz1');
 
       expect(result).toBeDefined();
       expect(mockPrisma.transfer.delete).toHaveBeenCalledWith({
@@ -318,7 +337,7 @@ describe('TransfersService', () => {
         status: 'SENDER_CONFIRMED',
       });
 
-      await expect(service.remove(transferId)).rejects.toThrow(
+      await expect(service.remove(transferId, 'biz1')).rejects.toThrow(
         ConflictException,
       );
     });
@@ -345,7 +364,7 @@ describe('TransfersService', () => {
         receiverUserId: 'user2',
       });
 
-      const result = await service.setReceiverUser(transferId, dto);
+      const result = await service.setReceiverUser(transferId, 'biz1', dto);
 
       expect(result).toBeDefined();
       expect(result.receiverUserId).toBe('user2');
@@ -365,7 +384,7 @@ describe('TransfersService', () => {
         businessId: 'biz1',
       });
 
-      await expect(service.setReceiverUser(transferId, dto)).rejects.toThrow(
+      await expect(service.setReceiverUser(transferId, 'biz1', dto)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -384,7 +403,7 @@ describe('TransfersService', () => {
         businessId: 'biz2',
       });
 
-      await expect(service.setReceiverUser(transferId, dto)).rejects.toThrow(
+      await expect(service.setReceiverUser(transferId, 'biz1', dto)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -419,7 +438,7 @@ describe('TransfersService', () => {
         receiverUserId: 'user2',
       });
 
-      const result = await service.receive(transferId, dto);
+      const result = await service.receive(transferId, 'biz1', dto);
 
       expect(result).toBeDefined();
       expect(result.status).toBe('COMPLETED');
@@ -471,7 +490,7 @@ describe('TransfersService', () => {
         status: 'COMPLETED',
       });
 
-      await service.receive(transferId, dto);
+      await service.receive(transferId, 'biz1', dto);
 
       // Check Receiver Inventory item created
       expect(mockPrisma.inventoryItem.create).toHaveBeenCalledWith({

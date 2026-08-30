@@ -7,30 +7,32 @@ import { UpdateProductUnitDto } from './dto/update-product-unit.dto';
 export class ProductUnitsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.productUnit.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.productUnit.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.productUnit.findMany({
+      where: { product: { businessId } },
     });
   }
 
-  create(body: CreateProductUnitDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.productUnit.findFirst({
+      where: { id, product: { businessId } },
+    });
+  }
+
+  create(businessId: string, body: CreateProductUnitDto) {
     return this.prisma.productUnit.create({
-      data: body,
+      data: { ...body, businessId } as any,
     });
   }
 
-  update(id: string, body: UpdateProductUnitDto) {
+  update(id: string, businessId: string, body: UpdateProductUnitDto) {
     return this.prisma.productUnit.update({
       where: { id },
-      data: body,
+      data: body as any,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.productUnit.delete({
       where: { id },
     });

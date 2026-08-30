@@ -6,6 +6,7 @@ export const CreateExpenseSchema = z.object({
   description: z.string().optional(),
   branchId: z.string().min(1),
   createdById: z.string().min(1).optional(),
+  status: z.enum(['RECORDED', 'ACKNOWLEDGED']).optional(),
 });
 
 export class CreateExpenseDto extends createZodDto(CreateExpenseSchema) {}

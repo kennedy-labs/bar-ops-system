@@ -12,13 +12,12 @@
 
 # 1. Purpose
 
-The Expense module records, approves, and tracks operational expenses incurred during business operations.
+The Expense module records and tracks operational expenses incurred during business operations.
 
 It provides financial accountability by ensuring every expense is:
 
 - Assigned to the correct Business, Branch, and Shift.
 - Attributed to the User who recorded it.
-- Approved according to business rules.
 - Included in reconciliation and profit calculations.
 - Preserved with a complete audit history.
 
@@ -26,7 +25,6 @@ The Expense module exists to answer:
 
 - What expense occurred?
 - Who recorded it?
-- Who approved it?
 - When did it happen?
 - Which Shift and Branch were affected?
 - How did it affect profitability?
@@ -39,12 +37,10 @@ The Expense module is responsible for:
 
 - Creating expenses.
 - Updating pending expenses.
-- Approving expenses.
-- Rejecting expenses.
 - Tracking expense lifecycle.
 - Maintaining expense audit history.
 - Providing expense summaries.
-- Integrating approved expenses into financial calculations.
+- Integrating expenses into financial calculations.
 
 The Expense module is **not responsible** for:
 
@@ -103,9 +99,9 @@ The Expense module follows these principles:
 - Every Expense belongs to one Branch.
 - Every Expense belongs to one Shift.
 - Every Expense has a responsible User.
-- Expenses require approval before affecting financial calculations.
-- Approved expenses are immutable.
-- Rejected expenses remain in history.
+- Expenses are immediately valid upon recording.
+- Owner approval provides acknowledgment, not authorization.
+- Expenses are immutable after recording.
 - Every financial impact must be traceable.
 - Expense records must support audit reconstruction.
 
@@ -129,17 +125,13 @@ Expense
 │ ├── Get Expense
 │ ├── List Expenses
 │ ├── Update Pending Expense
-│ ├── Approve Expense
-│ ├── Reject Expense
-│ ├── Delete Pending Expense
+│ ├── Acknowledge Expense
 │ ├── Shift Summary
 │ ├── Branch Summary
-│ ├── Pending Approvals
 │ └── Reconciliation Summary
 │
 ├── Service
 │ ├── Validation
-│ ├── Approval Workflow
 │ ├── Financial Integration
 │ ├── Reconciliation
 │ └── Reporting Support
@@ -192,7 +184,7 @@ Expense
 ├── shiftId
 │
 ├── recordedByUserId
-├── approvedByUserId?
+├── acknowledgedByUserId?
 │
 ├── type
 ├── description
@@ -205,7 +197,7 @@ Expense
 ├── status
 │
 ├── recordedAt
-├── approvedAt?
+├── acknowledgedAt?
 │
 ├── createdAt
 └── updatedAt
@@ -229,9 +221,8 @@ OTHER
 ### ExpenseStatus
 
 
-PENDING
-APPROVED
-REJECTED
+RECORDED
+ACKNOWLEDGED
 
 
 ---
@@ -270,6 +261,8 @@ DELETE /expenses/:id
 
 ## Approval Workflow
 
+Owner acknowledgment provides read confirmation, not authorization.
+
 
 POST /expenses/:id/approve
 
@@ -298,27 +291,19 @@ GET /expenses/reconciliation/:shiftId
 Create Expense
 
 Creates:
-PENDING Expense
+RECORDED Expense
 
 Update Expense
 
 Updates:
-Only PENDING Expenses
+Editable fields while expense remains open
 
-Approve Expense
+Acknowledge Expense
 
-Changes:
-PENDING → APPROVED
+Records:
+Owner read acknowledgment
 
-Reject Expense
-
-Changes:
-PENDING → REJECTED
-
-Pending Approval
-
-Returns:
-Expenses waiting for approval
+Reconciliation Summary
 
 Shift Summary
 
@@ -347,18 +332,7 @@ Record Expense
 Create Expense
 │
 ▼
-Status = PENDING
-│
-▼
-Manager Reviews
-│
-┌────┴────┐
-│ │
-▼ ▼
-Approve Reject
-│ │
-▼ ▼
-APPROVED REJECTED
+Status = RECORDED
 │
 ▼
 Financial Impact Applied
@@ -374,12 +348,10 @@ Financial Impact Applied
 ## State Machine
 
 
-PENDING
+RECORDED
 
 │
-├────────► APPROVED
-│
-└────────► REJECTED
+└────────► ACKNOWLEDGED
 
 
 ---
@@ -425,20 +397,18 @@ Expense
 │
 ├── User Module
 │ ├── Validate recorder
-│ ├── Validate approver
 │ └── Permission checks
 │
 ├── Shift Payment Summary Module
-│ ├── Include approved expenses
+│ ├── Include expenses
 │ └── Adjust reconciliation totals
 │
 ├── Profit Module
 │ ├── Gross Profit
-│ ├── Approved Expenses
+│ ├── Recorded Expenses
 │ └── Net Profit
 │
 ├── Discrepancy Module
-│ ├── Approval violations
 │ ├── Cash inconsistencies
 │ └── Expense anomalies
 │
@@ -457,12 +427,10 @@ Expense
 - Every Expense belongs to exactly one Branch.
 - Every Expense belongs to exactly one Shift.
 - Every Expense belongs to exactly one recording User.
-- Only authorized Users can approve Expenses.
-- Pending Expenses may be edited.
-- Approved Expenses cannot be edited.
-- Rejected Expenses cannot be edited.
-- Approved Expenses affect financial calculations.
-- Rejected Expenses remain stored for auditing.
+- Expenses are immediately valid upon recording.
+- Recorded Expenses may be edited while open.
+- Acknowledged Expenses cannot be edited.
+- All recorded Expenses affect financial calculations.
 - Expense amounts cannot be negative.
 - Every Expense must have a valid category/type.
 - Every Expense must have a timestamp.
@@ -489,8 +457,8 @@ model Expense {
   recordedByUserId String
   recordedBy User @relation(fields: [recordedByUserId], references: [id])
 
-  approvedByUserId String?
-  approvedBy User? @relation(fields: [approvedByUserId], references: [id])
+  acknowledgedByUserId String?
+  acknowledgedBy User? @relation(fields: [acknowledgedByUserId], references: [id])
 
   type ExpenseType
 
@@ -502,7 +470,7 @@ model Expense {
 
   recordedAt DateTime
 
-  approvedAt DateTime?
+  acknowledgedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -524,12 +492,10 @@ Phase 2 — CRUD
 └── Service
 
 
-Phase 3 — Approval Workflow
+Phase 3 — Owner Acknowledgment
 
-├── ApproveExpenseDto
-├── RejectExpenseDto
-├── approveExpense()
-└── rejectExpense()
+├── AcknowledgeExpenseDto
+├── acknowledgeExpense()
 
 
 Phase 4 — Business Rules
@@ -603,10 +569,10 @@ POST /expenses/:id/approve
 
 POST /expenses/:id/reject
 15. Security Rules
-Only authorized roles can approve expenses.
-Workers cannot approve their own expenses.
-Approved expenses cannot be modified.
-All approval actions must be traceable.
+Only authorized roles can create expenses.
+Workers cannot modify another user's expenses.
+Recorded expenses cannot be modified after acknowledgment.
+All expense actions must be traceable.
 Sensitive expense information must respect access permissions.
 16. Out of Scope
 
@@ -634,9 +600,9 @@ The Expense module is complete when:
 
 Expense entity exists.
 CRUD operations work.
-Approval workflow works.
+Owner acknowledgment works.
 Validation rules are enforced.
-Approved expenses affect reconciliation.
+Recorded expenses affect reconciliation.
 Audit history is preserved.
 Tests pass.
 19. Summary
@@ -646,7 +612,6 @@ The Expense module provides controlled operational expense tracking for the Bar 
 It ensures:
 
 Expense accountability.
-Approval control.
 Financial accuracy.
 Auditability.
 Reconciliation support.

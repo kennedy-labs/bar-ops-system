@@ -4,7 +4,9 @@ export interface Transfer {
   id: string;
   businessId: string;
   senderBranchId: string;
+  senderLocationId: string;
   receiverBranchId: string;
+  receiverLocationId: string;
   senderUserId: string;
   receiverUserId?: string | null;
   status:

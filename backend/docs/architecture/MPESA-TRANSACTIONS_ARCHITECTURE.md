@@ -138,10 +138,14 @@ id
 businessId
 mpesaAccountId
 shiftId
-externalTransactionId
+transactionReference
+transactionType
 amount
 transactionTime
+sender
+receiver
 status
+reconciliationStatus
 createdAt
 updatedAt
 Relationships
@@ -179,8 +183,11 @@ Get Transactions
 GET /mpesa-transactions
 Supports filtering by:
 Mpesa Account
+Branch
 Shift
+Transaction type
 Transaction status
+Reconciliation status
 Date range
 
 Get Transaction
@@ -242,8 +249,9 @@ Does recorded Mpesa money match expected operational revenue?
 Every transaction belongs to exactly one Business.
 Every transaction belongs to exactly one Mpesa Account.
 A transaction may belong to one Shift.
-externalTransactionId must be unique.
+transactionReference must be unique per account.
 Transaction amount must be greater than zero.
+Transaction type must be valid.
 Transactions are immutable after creation.
 A transaction cannot be moved to another Business.
 A transaction cannot be reassigned between Mpesa Accounts.
@@ -256,12 +264,15 @@ Financial amounts must use exact decimal arithmetic.
 Ingestion
 Validate:
 Business exists.
+Branch exists where applicable.
 Mpesa Account exists.
 Mpesa Account belongs to the Business.
-Transaction identifier is present.
-Transaction identifier is unique for the relevant account.
+Transaction reference is present.
+Transaction reference is unique for the relevant account.
+Transaction type is valid.
 Amount is positive.
 Transaction timestamp is valid.
+Sender/receiver information is valid where required.
 Required transaction data is present.
 Shift Attribution
 Validate:
@@ -274,12 +285,24 @@ Retrieval
 Validate:
 Transaction exists.
 Transaction belongs to the authorized Business.
-
 13. Database Design
+
 enum MpesaTransactionStatus {
   RECEIVED
   RECONCILED
   DISPUTED
+}
+
+enum MpesaTransactionType {
+  PAYBILL
+  POCHI
+  BUY_GOODS_AND_SERVICES
+  SEND_MONEY
+}
+
+enum MpesaReconciliationStatus {
+  UNRECONCILED
+  RECONCILED
 }
 
 model MpesaTransaction {
@@ -303,18 +326,26 @@ model MpesaTransaction {
     references: [id]
   )
 
-  externalTransactionId String
+  transactionReference String
+
+  transactionType MpesaTransactionType
 
   amount Decimal
 
   transactionTime DateTime
 
+  sender String?
+
+  receiver String?
+
   status MpesaTransactionStatus @default(RECEIVED)
+
+  reconciliationStatus MpesaReconciliationStatus @default(UNRECONCILED)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([mpesaAccountId, externalTransactionId])
+  @@unique([mpesaAccountId, transactionReference])
   @@index([businessId, transactionTime])
   @@index([shiftId])
 }
@@ -322,7 +353,7 @@ model MpesaTransaction {
 Database Principles
 businessId establishes tenant ownership.
 mpesaAccountId identifies the receiving account.
-externalTransactionId provides idempotency.
+transactionReference provides idempotency.
 Decimal prevents floating-point financial errors.
 Transactions remain stored after reconciliation.
 Status changes represent reconciliation state, not changes to the original financial event.
@@ -399,7 +430,7 @@ id
 businessId
 mpesaAccountId
 shiftId
-externalTransactionId
+transactionReference
 amount
 transactionTime
 status
@@ -410,7 +441,7 @@ Business
 MpesaAccount
 Shift
 Constraints:
-@@unique([mpesaAccountId, externalTransactionId])
+@@unique([mpesaAccountId, transactionReference])
 Use Decimal for amount.
 
 Step 4 — Validate and Migrate
@@ -459,7 +490,7 @@ Validate amount > 0
         ↓
 Validate transaction timestamp
         ↓
-Check externalTransactionId
+Check transactionReference
         ↓
 If duplicate → return existing transaction
         ↓
@@ -512,7 +543,7 @@ After creation, do not allow modification of:
 - id
 - businessId
 - mpesaAccountId
-- externalTransactionId
+- transactionReference
 - amount
 - transactionTime
 - createdAt
@@ -558,12 +589,12 @@ Step 11 — Implement Duplicate Handling
 
 When receiving a transaction:
 
-externalTransactionId received
+transactionReference received
         ↓
 Search using:
 mpesaAccountId
 +
-externalTransactionId
+transactionReference
         ↓
 Existing transaction?
    │

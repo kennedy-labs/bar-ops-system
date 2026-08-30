@@ -9,36 +9,38 @@ import { CloseShiftDto } from './dto/close-shift.dto';
 export class ShiftsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.shift.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.shift.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.shift.findMany({
+      where: { branch: { businessId } },
     });
   }
 
-  create(body: CreateShiftDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.shift.findFirst({
+      where: { id, branch: { businessId } },
+    });
+  }
+
+  create(businessId: string, body: CreateShiftDto) {
     return this.prisma.shift.create({
-      data: body,
+      data: { ...body, businessId } as any,
     });
   }
 
-  update(id: string, body: UpdateShiftDto) {
+  update(id: string, businessId: string, body: UpdateShiftDto) {
     return this.prisma.shift.update({
       where: { id },
       data: body,
     });
   }
 
-    remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.shift.delete({
       where: { id },
     });
   }
 
-  async open(body: ShiftOpenDto) {
+  async open(businessId: string, body: ShiftOpenDto) {
     const { branchId, userId, items } = body;
 
     const shift = await this.prisma.shift.create({
@@ -49,19 +51,22 @@ export class ShiftsService {
       },
     });
 
-    // Persist each opening-count as a shiftStockItem record (the real model)
     await this.prisma.shiftStockItem.createMany({
       data: items.map((item) => ({
         shiftId: shift.id,
         productId: item.productId,
+        productUnitId: item.productUnitId,
+        stockLocationId: item.stockLocationId,
+        businessId,
+        branchId,
         openingQuantity: item.openingQuantity,
       })),
     });
 
-        return shift;
+    return shift;
   }
 
-  async close(body: CloseShiftDto) {
+  async close(businessId: string, body: CloseShiftDto) {
     const { shiftId, items } = body;
 
     const shift = await this.prisma.shift.findUnique({
@@ -70,11 +75,15 @@ export class ShiftsService {
         shiftStockItems: {
           include: { product: true },
         },
+        branch: true,
       },
     });
 
     if (!shift) throw new Error("Shift not found");
     if (shift.closedAt) throw new Error("Shift already closed");
+    if (shift.branch.businessId !== businessId) {
+      throw new Error("Shift does not belong to business");
+    }
 
     for (const item of items) {
       const existing = shift.shiftStockItems.find(
@@ -94,6 +103,9 @@ export class ShiftsService {
           data: {
             shiftId: shift.id,
             productId: item.productId,
+            productUnitId: item.productUnitId,
+            businessId,
+            branchId: shift.branchId,
             openingQuantity: 0,
             addedQuantity: item.addedQuantity ?? 0,
             closingQuantity: item.actualQuantity,

@@ -7,48 +7,32 @@ import { UpdateStockLocationDto } from './dto/update-stock-location.dto';
 export class StockLocationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll(businessId?: string) {
+  getAll(businessId: string) {
     return this.prisma.stockLocation.findMany({
-      where: businessId ? { businessId } : undefined,
+      where: { businessId },
     });
   }
 
-  getById(id: string) {
-    return this.prisma.stockLocation.findUnique({
-      where: { id },
+  getById(id: string, businessId: string) {
+    return this.prisma.stockLocation.findFirst({
+      where: { id, businessId },
     });
   }
 
-  async create(body: CreateStockLocationDto) {
-    let businessId = body.businessId;
-    if (!businessId) {
-      const branch = await this.prisma.branch.findUnique({
-        where: { id: body.branchId },
-        select: { businessId: true },
-      });
-      if (!branch) throw new Error('Branch not found');
-      businessId = branch.businessId;
-    }
+  create(businessId: string, body: CreateStockLocationDto) {
     return this.prisma.stockLocation.create({
-      data: {
-        businessId,
-        branchId: body.branchId,
-        name: body.name,
-        type: body.type,
-        description: body.description,
-        status: body.status,
-      },
+      data: { ...body, businessId },
     });
   }
 
-  update(id: string, body: UpdateStockLocationDto) {
+  update(id: string, businessId: string, body: UpdateStockLocationDto) {
     return this.prisma.stockLocation.update({
       where: { id },
       data: body,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.stockLocation.delete({
       where: { id },
     });

@@ -30,13 +30,15 @@ A discrepancy is a record of a difference, not an automatic explanation of why t
 The system must:
 
 Record stock discrepancies.
+Record financial discrepancies.
 Associate discrepancies with the correct Business.
 Associate discrepancies with the correct Branch/location.
 Associate discrepancies with the relevant Shift where applicable.
 Identify the affected product/item.
-Record expected quantity.
-Record actual quantity.
-Calculate the difference.
+Record expected quantity and expected value.
+Record actual quantity and actual value.
+Calculate the quantity difference.
+Calculate the financial variance.
 Record who reported the discrepancy.
 Record when it was reported.
 Allow workers to report discrepancies during operations.
@@ -175,9 +177,13 @@ Discrepancy
 ├── locationId
 ├── shiftId
 ├── productId
+├── type
 ├── expectedQuantity
 ├── actualQuantity
-├── difference
+├── quantityDifference
+├── expectedValue
+├── actualValue
+├── valueVariance
 ├── reportedBy
 ├── reportedAt
 ├── status
@@ -186,6 +192,14 @@ Discrepancy
 └── updatedAt
 
 Exact Prisma fields remain authoritative.
+
+9. Discrepancy Types
+
+STOCK_SHORTAGE
+CASH_SHORTAGE
+MPESA_MISMATCH
+TRANSFER_MISMATCH
+UNCONFIRMED_ADDITION
 
 10. Expected Quantity
 
@@ -237,6 +251,33 @@ Interpretation:
 -3 = shortage
 0 = match
 +3 = excess
+
+The sign must not be reversed.
+
+12. Value Variance Calculation
+
+The financial variance must be deterministic:
+
+# Value Variance
+
+## Actual Value
+
+Expected Value
+
+Example:
+
+Expected = 5000
+Actual = 4500
+
+Variance
+= 4500 - 5000
+= -500
+
+Interpretation:
+
+-500 = shortage
+0 = match
++500 = excess
 
 The sign must not be reversed.
 
@@ -514,7 +555,11 @@ Shift exists where required.
 Shift belongs to Business.
 Expected quantity is valid.
 Actual quantity is valid.
-Difference is calculated server-side.
+Quantity difference is calculated server-side.
+Expected value is valid where applicable.
+Actual value is valid where applicable.
+Value variance is calculated server-side.
+Discrepancy type is valid.
 User is authorized.
 Lifecycle state permits requested action. 30. Server-side Difference Calculation
 
@@ -530,6 +575,21 @@ Server calculates:
 22 - 25 = -3
 
 The authoritative difference comes from the server.
+
+30. Server-side Variance Calculation
+
+The client must not be trusted to provide the authoritative financial variance.
+
+Client:
+
+Expected Value = 5000
+Actual Value = 4500
+
+Server calculates:
+
+4500 - 5000 = -500
+
+The authoritative variance comes from the server.
 
 31. Transaction Safety
 

@@ -4,6 +4,8 @@ import { z } from 'zod';
 export const UpdateInventoryItemSchema = z.object({
   branchId: z.string().min(1).optional(),
   productId: z.string().min(1).optional(),
+  productUnitId: z.string().min(1).optional(),
+  stockLocationId: z.string().optional(),
   quantity: z.number().int().min(0).optional(),
 });
 

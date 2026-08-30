@@ -227,8 +227,12 @@ Required fields:
 
 id
 businessId
+branchId
 name
+phone
+email
 role
+status
 createdAt
 updatedAt
 
@@ -275,8 +279,14 @@ id String @id @default(cuid())
 businessId String
 business Business @relation(fields: [businessId], references: [id])
 
+branchId String
+branch Branch @relation(fields: [branchId], references: [id])
+
 name String
+phone String?
+email String?
 role UserRole @default(WORKER)
+status UserStatus @default(ACTIVE)
 
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
@@ -357,7 +367,11 @@ Example:
 
 {
 "name": "John",
-"role": "WORKER"
+"phone": "+254700000000",
+"email": "john@example.com",
+"branchId": "branch-id",
+"role": "WORKER",
+"status": "ACTIVE"
 }
 
 The Business ownership must come from authorized Business context.
@@ -394,8 +408,12 @@ Example:
 {
 "id": "user-id",
 "businessId": "business-id",
+"branchId": "branch-id",
 "name": "John",
+"phone": "+254700000000",
+"email": "john@example.com",
 "role": "WORKER",
+"status": "ACTIVE",
 "createdAt": "timestamp",
 "updatedAt": "timestamp"
 }

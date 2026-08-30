@@ -2,9 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
-  Post,
   Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { MpesaAccountsService } from './mpesa-accounts.service';
@@ -16,31 +17,31 @@ export class MpesaAccountsController {
   constructor(private readonly mpesaAccountsService: MpesaAccountsService) {}
 
   @Get()
-  getAll(@Query('businessId') businessId: string) {
+  getAll(@Headers('x-business-id') businessId: string) {
     return this.mpesaAccountsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @Query('businessId') businessId: string) {
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
     return this.mpesaAccountsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() dto: CreateMpesaAccountDto) {
-    return this.mpesaAccountsService.create(dto);
+  create(@Headers('x-business-id') businessId: string, @Body() dto: CreateMpesaAccountDto) {
+    return this.mpesaAccountsService.create(businessId, dto);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Headers('x-business-id') businessId: string,
     @Body() dto: UpdateMpesaAccountDto,
   ) {
     return this.mpesaAccountsService.update(id, businessId, dto as any);
   }
 
   @Post(':id/deactivate')
-  deactivate(@Param('id') id: string, @Query('businessId') businessId: string) {
+  deactivate(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
     return this.mpesaAccountsService.deactivate(id, businessId);
   }
 }

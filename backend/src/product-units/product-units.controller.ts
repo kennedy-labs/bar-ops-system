@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -16,27 +17,27 @@ export class ProductUnitsController {
   constructor(private readonly productUnitsService: ProductUnitsService) {}
 
   @Get()
-  getAll() {
-    return this.productUnitsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.productUnitsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.productUnitsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productUnitsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateProductUnitDto) {
-    return this.productUnitsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateProductUnitDto) {
+    return this.productUnitsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateProductUnitDto) {
-    return this.productUnitsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateProductUnitDto) {
+    return this.productUnitsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productUnitsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productUnitsService.remove(id, businessId);
   }
 }

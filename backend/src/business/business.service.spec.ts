@@ -54,14 +54,18 @@ describe('BusinessService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getAll', () => {
-    it('should return all businesses', async () => {
-      prisma.business.findMany.mockResolvedValue([mockBusiness]);
+  describe('getBusinessesForUser', () => {
+    it('should return businesses for a user', async () => {
+      const userBusinesses = [
+        { business: mockBusiness },
+      ];
+      (prisma as any).userBusiness = {
+        findMany: jest.fn().mockResolvedValue(userBusinesses),
+      };
 
-      const result = await service.getAll();
+      const result = await service.getBusinessesForUser('user-1');
 
       expect(result).toEqual([mockBusiness]);
-      expect(prisma.business.findMany).toHaveBeenCalled();
     });
   });
 

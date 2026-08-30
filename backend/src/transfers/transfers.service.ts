@@ -17,17 +17,29 @@ import { RejectTransferDto } from './dto/reject-transfer.dto';
 export class TransfersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
+  private async assertUserInBusiness(userId: string, businessId: string) {
+    const membership = await this.prisma.userBusiness.findFirst({
+      where: { userId, businessId },
+    });
+    if (!membership) {
+      throw new BadRequestException(
+        `User ${userId} does not belong to business ${businessId}`,
+      );
+    }
+  }
+
+  getAll(businessId: string) {
     return this.prisma.transfer.findMany({
+      where: { businessId },
       include: {
         items: true,
       },
     });
   }
 
-  getById(id: string) {
-    return this.prisma.transfer.findUnique({
-      where: { id },
+  getById(id: string, businessId: string) {
+    return this.prisma.transfer.findFirst({
+      where: { id, businessId },
       include: {
         items: true,
         stockMovements: true,
@@ -38,19 +50,20 @@ export class TransfersService {
     });
   }
 
-  async create(body: CreateTransferDto) {
+  async create(businessId: string, body: CreateTransferDto) {
     const {
-      businessId,
       senderBranchId,
+      senderLocationId,
       receiverBranchId,
+      receiverLocationId,
       senderUserId,
       receiverUserId,
       notes,
     } = body;
 
-    if (senderBranchId === receiverBranchId) {
+    if (senderBranchId === receiverBranchId && senderLocationId === receiverLocationId) {
       throw new BadRequestException(
-        'Sender and receiver branches cannot be the same',
+        'Sender and receiver locations cannot be the same',
       );
     }
 
@@ -90,6 +103,20 @@ export class TransfersService {
       );
     }
 
+    const senderLocation = await this.prisma.stockLocation.findFirst({
+      where: { id: senderLocationId, businessId },
+    });
+    if (!senderLocation) {
+      throw new NotFoundException(`Sender location ${senderLocationId} not found for business ${businessId}`);
+    }
+
+    const receiverLocation = await this.prisma.stockLocation.findFirst({
+      where: { id: receiverLocationId, businessId },
+    });
+    if (!receiverLocation) {
+      throw new NotFoundException(`Receiver location ${receiverLocationId} not found for business ${businessId}`);
+    }
+
     const senderUser = await this.prisma.user.findUnique({
       where: { id: senderUserId },
     });
@@ -98,11 +125,7 @@ export class TransfersService {
       throw new NotFoundException(`User ${senderUserId} not found`);
     }
 
-    if (senderUser.businessId !== businessId) {
-      throw new BadRequestException(
-        `Sender user ${senderUserId} does not belong to business ${businessId}`,
-      );
-    }
+    await this.assertUserInBusiness(senderUserId, businessId);
 
     let receiverUserData: string | undefined = undefined;
 
@@ -115,11 +138,7 @@ export class TransfersService {
         throw new NotFoundException(`User ${receiverUserId} not found`);
       }
 
-      if (receiverUser.businessId !== businessId) {
-        throw new BadRequestException(
-          `Receiver user ${receiverUserId} does not belong to business ${businessId}`,
-        );
-      }
+      await this.assertUserInBusiness(receiverUserId, businessId);
 
       receiverUserData = receiverUserId;
     }
@@ -128,7 +147,9 @@ export class TransfersService {
       data: {
         businessId,
         senderBranchId,
+        senderLocationId,
         receiverBranchId,
+        receiverLocationId,
         senderUserId,
         receiverUserId: receiverUserData,
         notes,
@@ -136,9 +157,9 @@ export class TransfersService {
     });
   }
 
-  async addItems(id: string, body: AddTransferItemsDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async addItems(id: string, businessId: string, body: AddTransferItemsDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
     });
 
     if (!transfer) {
@@ -204,9 +225,9 @@ export class TransfersService {
     });
   }
 
-  async remove(id: string) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async remove(id: string, businessId: string) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
     });
 
     if (!transfer) {
@@ -222,9 +243,9 @@ export class TransfersService {
     });
   }
 
-  async dispatch(id: string, dto: DispatchTransferDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async dispatch(id: string, businessId: string, dto: DispatchTransferDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
       include: {
         items: true,
       },
@@ -254,20 +275,21 @@ export class TransfersService {
       throw new BadRequestException(`User ${dto.userId} not found`);
     }
 
+    await this.assertUserInBusiness(dto.userId, businessId);
+
     return this.prisma.$transaction(async (tx) => {
       for (const item of transfer.items) {
-        const inventoryItem = await tx.inventoryItem.findUnique({
+        const inventoryItem = await tx.inventoryItem.findFirst({
           where: {
-            branchId_productId: {
-              branchId: transfer.senderBranchId,
-              productId: item.productId,
-            },
+            branchId: transfer.senderBranchId,
+            productId: item.productId,
+            productUnitId: item.productUnitId,
           },
         });
 
         if (!inventoryItem || inventoryItem.quantity < item.quantity) {
           throw new BadRequestException(
-            `Insufficient stock for product ${item.productId}. Available: ${inventoryItem?.quantity ?? 0}, Required: ${item.quantity}`,
+            `Insufficient stock for product ${item.productId} (unit ${item.productUnitId}). Available: ${inventoryItem?.quantity ?? 0}, Required: ${item.quantity}`,
           );
         }
 
@@ -303,9 +325,9 @@ export class TransfersService {
     });
   }
 
-  async receive(id: string, dto: ReceiveTransferDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async receive(id: string, businessId: string, dto: ReceiveTransferDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
       include: {
         items: true,
       },
@@ -335,6 +357,8 @@ export class TransfersService {
       throw new BadRequestException(`User ${dto.userId} not found`);
     }
 
+    await this.assertUserInBusiness(dto.userId, businessId);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.stockMovement.createMany({
         data: transfer.items.map((item) => ({
@@ -349,12 +373,11 @@ export class TransfersService {
       });
 
       for (const item of transfer.items) {
-        const inventoryItem = await tx.inventoryItem.findUnique({
+        const inventoryItem = await tx.inventoryItem.findFirst({
           where: {
-            branchId_productId: {
-              branchId: transfer.receiverBranchId,
-              productId: item.productId,
-            },
+            branchId: transfer.receiverBranchId,
+            productId: item.productId,
+            productUnitId: item.productUnitId,
           },
         });
 
@@ -372,6 +395,7 @@ export class TransfersService {
             data: {
               branchId: transfer.receiverBranchId,
               productId: item.productId,
+              productUnitId: item.productUnitId,
               quantity: item.quantity,
             },
           });
@@ -389,9 +413,9 @@ export class TransfersService {
     });
   }
 
-  async setReceiverUser(id: string, dto: SetReceiverUserDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async setReceiverUser(id: string, businessId: string, dto: SetReceiverUserDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
     });
 
     if (!transfer) {
@@ -412,11 +436,7 @@ export class TransfersService {
       throw new NotFoundException(`User ${dto.receiverUserId} not found`);
     }
 
-    if (receiverUser.businessId !== transfer.businessId) {
-      throw new BadRequestException(
-        `Receiver user ${dto.receiverUserId} does not belong to business ${transfer.businessId}`,
-      );
-    }
+    await this.assertUserInBusiness(dto.receiverUserId, businessId);
 
     return this.prisma.transfer.update({
       where: { id },
@@ -426,9 +446,9 @@ export class TransfersService {
     });
   }
 
-  async cancel(id: string, dto: CancelTransferDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async cancel(id: string, businessId: string, dto: CancelTransferDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
     });
 
     if (!transfer) {
@@ -453,11 +473,7 @@ export class TransfersService {
       throw new NotFoundException(`User ${dto.userId} not found`);
     }
 
-    if (user.businessId !== transfer.businessId) {
-      throw new BadRequestException(
-        `User ${dto.userId} does not belong to business ${transfer.businessId}`,
-      );
-    }
+    await this.assertUserInBusiness(dto.userId, businessId);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.discrepancy.create({
@@ -485,9 +501,9 @@ export class TransfersService {
     });
   }
 
-  async reject(id: string, dto: RejectTransferDto) {
-    const transfer = await this.prisma.transfer.findUnique({
-      where: { id },
+  async reject(id: string, businessId: string, dto: RejectTransferDto) {
+    const transfer = await this.prisma.transfer.findFirst({
+      where: { id, businessId },
     });
 
     if (!transfer) {
@@ -512,11 +528,7 @@ export class TransfersService {
       throw new NotFoundException(`User ${dto.userId} not found`);
     }
 
-    if (user.businessId !== transfer.businessId) {
-      throw new BadRequestException(
-        `User ${dto.userId} does not belong to business ${transfer.businessId}`,
-      );
-    }
+    await this.assertUserInBusiness(dto.userId, businessId);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.discrepancy.create({
@@ -544,41 +556,40 @@ export class TransfersService {
     });
   }
 
-  getItems(transferId: string) {
+  getItems(transferId: string, businessId: string) {
     return this.prisma.transferItem.findMany({
       where: { transferId },
     });
   }
 
-  getDiscrepancies(transferId: string) {
+  getDiscrepancies(transferId: string, businessId: string) {
     return this.prisma.discrepancy.findMany({
       where: { transferId },
     });
   }
 
-  getStockMovements(transferId: string) {
+  getStockMovements(transferId: string, businessId: string) {
     return this.prisma.stockMovement.findMany({
       where: { transferId },
     });
   }
 
-  getByBranch(branchId: string, role?: 'SENDER' | 'RECEIVER') {
+  getByBranch(branchId: string, role?: 'SENDER' | 'RECEIVER', businessId?: string) {
+    const where: any = {};
+    if (businessId) {
+      where.businessId = businessId;
+    }
     if (role === 'SENDER') {
-      return this.prisma.transfer.findMany({
-        where: { senderBranchId: branchId },
-      });
+      where.senderBranchId = branchId;
+      return this.prisma.transfer.findMany({ where });
     }
 
     if (role === 'RECEIVER') {
-      return this.prisma.transfer.findMany({
-        where: { receiverBranchId: branchId },
-      });
+      where.receiverBranchId = branchId;
+      return this.prisma.transfer.findMany({ where });
     }
 
-    return this.prisma.transfer.findMany({
-      where: {
-        OR: [{ senderBranchId: branchId }, { receiverBranchId: branchId }],
-      },
-    });
+    where.OR = [{ senderBranchId: branchId }, { receiverBranchId: branchId }];
+    return this.prisma.transfer.findMany({ where });
   }
 }

@@ -44,7 +44,7 @@ describe('ReportsService', () => {
       },
     ]);
 
-    const result = await service.getInventoryReport({ businessId: 'b1' });
+    const result = await service.getInventoryReport('b1', { businessId: 'b1' });
     expect(result.items[0].productName).toBe('Beer');
   });
 });

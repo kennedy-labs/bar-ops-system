@@ -7,30 +7,32 @@ import { UpdateShiftStockItemDto } from './dto/update-shift-stock-item.dto';
 export class ShiftStockItemsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.shiftStockItem.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.shiftStockItem.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.shiftStockItem.findMany({
+      where: { shift: { branch: { businessId } } },
     });
   }
 
-  create(body: CreateShiftStockItemDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.shiftStockItem.findFirst({
+      where: { id, shift: { branch: { businessId } } },
+    });
+  }
+
+  create(businessId: string, body: CreateShiftStockItemDto) {
     return this.prisma.shiftStockItem.create({
-      data: body,
+      data: { ...body, businessId },
     });
   }
 
-  update(id: string, body: UpdateShiftStockItemDto) {
+  update(id: string, businessId: string, body: UpdateShiftStockItemDto) {
     return this.prisma.shiftStockItem.update({
       where: { id },
       data: body,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.shiftStockItem.delete({
       where: { id },
     });

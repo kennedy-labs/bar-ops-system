@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Headers, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { ReportFilterDto } from './dto/report-filter.dto';
@@ -10,49 +10,49 @@ export class ReportsController {
 
   @ApiOperation({ summary: 'Get inventory report' })
   @Get('inventory')
-  async getInventoryReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getInventoryReport(filters);
+  async getInventoryReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getInventoryReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get sales report' })
   @Get('sales')
-  async getSalesReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getSalesReport(filters);
+  async getSalesReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getSalesReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get expense report' })
   @Get('expenses')
-  async getExpenseReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getExpenseReport(filters);
+  async getExpenseReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getExpenseReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get profit report' })
   @Get('profit')
-  async getProfitReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getProfitReport(filters);
+  async getProfitReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getProfitReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get shifts report' })
   @Get('shifts')
-  async getShiftReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getShiftReport(filters);
+  async getShiftReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getShiftReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get Mpesa report' })
   @Get('mpesa')
-  async getMpesaReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getMpesaReport(filters);
+  async getMpesaReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getMpesaReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get discrepancies report' })
   @Get('discrepancies')
-  async getDiscrepancyReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getDiscrepancyReport(filters);
+  async getDiscrepancyReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getDiscrepancyReport(businessId, filters);
   }
 
   @ApiOperation({ summary: 'Get business summary report' })
   @Get('summary')
-  async getSummaryReport(@Query() filters: ReportFilterDto) {
-    return this.reportsService.getSummary(filters);
+  async getSummaryReport(@Headers('x-business-id') businessId: string, @Query() filters: ReportFilterDto) {
+    return this.reportsService.getSummary(businessId, filters);
   }
 }

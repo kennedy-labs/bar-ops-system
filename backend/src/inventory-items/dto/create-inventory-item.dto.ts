@@ -4,6 +4,8 @@ import { z } from 'zod';
 export const CreateInventoryItemSchema = z.object({
   branchId: z.string().min(1),
   productId: z.string().min(1),
+  productUnitId: z.string().min(1),
+  stockLocationId: z.string().optional(),
   quantity: z.number().int().min(0),
 });
 

@@ -1,6 +1,6 @@
 # 1. Purpose
 
-The Stock Location module defines the physical locations where inventory is stored within a Branch.
+The Stock Location module defines the physical locations where inventory is stored within a Business.
 
 It provides the location identity used for inventory management, stock movements, transfers, and shift operations.
 
@@ -37,7 +37,7 @@ These responsibilities belong to their respective modules.
 - Prisma
 - Database
 
-A Stock Location cannot exist without a Branch.
+A Stock Location cannot exist without a Business.
 
 ## Used By
 
@@ -57,8 +57,8 @@ Every inventory operation references a Stock Location.
 
 The Stock Location module follows these principles:
 
-- Every Stock Location belongs to one Branch.
-- A Branch may have multiple Stock Locations.
+- Every Stock Location belongs to one Business.
+- A Business may have multiple Stock Locations.
 - Stock Locations represent physical storage areas.
 - Stock Locations do not store inventory quantities.
 - Operational modules reference Stock Locations instead of duplicating location information.
@@ -78,7 +78,7 @@ Stock Location
 │   └── Status
 │
 ├── Ownership
-│   └── Branch
+│   └── Business
 │
 └── Operational References
     ├── Inventory
@@ -121,7 +121,6 @@ backend/
 
 - id
 - businessId
-- branchId
 - name
 - type
 - description
@@ -134,7 +133,6 @@ backend/
 Stock Location belongs to:
 
 - Business
-- Branch
 
 Referenced by:
 
@@ -204,9 +202,6 @@ Removes (or soft deletes) a Stock Location.
 Business exists
         │
         ▼
-Branch exists
-        │
-        ▼
 Create Stock Location
         │
         ▼
@@ -246,8 +241,7 @@ Every inventory-related operation references a Stock Location.
 # 11. Business Rules
 
 - Every Stock Location belongs to exactly one Business.
-- Every Stock Location belongs to exactly one Branch.
-- A Branch may contain multiple Stock Locations.
+- A Business may contain multiple Stock Locations.
 - Stock Locations represent physical storage areas only.
 - Stock Locations do not store inventory quantities.
 - Historical operational records remain linked to the original Stock Location.
@@ -259,8 +253,7 @@ Every inventory-related operation references a Stock Location.
 
 1. Create Stock Location Prisma model.
 2. Add Business → Stock Location relationship.
-3. Add Branch → Stock Location relationship.
-4. Generate migration.
+3. Generate migration.
 5. Generate Stock Location module.
 6. Create DTOs.
 7. Implement service.
@@ -278,7 +271,6 @@ Every inventory-related operation references a Stock Location.
 Validate:
 
 - Business exists.
-- Branch exists.
 - Name is required.
 - Type is valid.
 
@@ -292,13 +284,11 @@ Allowed:
 Restricted:
 
 - Changing Business ownership.
-- Changing Branch ownership.
 - Deleting Stock Locations with operational history.
 
 ## Data Integrity
 
 - Every Stock Location references an existing Business.
-- Every Stock Location references an existing Branch.
 - Stock Location ID remains stable.
 - Operational modules reference existing Stock Locations only.
 
@@ -312,9 +302,6 @@ model StockLocation {
 
   businessId String
   business Business @relation(fields: [businessId], references: [id])
-
-  branchId String
-  branch Branch @relation(fields: [branchId], references: [id])
 
   name String
 
@@ -345,12 +332,10 @@ model StockLocation {
 - Create Stock Location.
 - Update Stock Location.
 - Reject invalid Business references.
-- Reject invalid Branch references.
 
 ## Integration Tests
 
 - Stock Location belongs to Business.
-- Stock Location belongs to Branch.
 - Relationships load correctly.
 
 ## API Tests
@@ -396,7 +381,7 @@ The Stock Location module does not:
 The Stock Location module is complete when:
 
 - Stock Location entity exists.
-- Business and Branch relationships are implemented.
+- Business relationship is implemented.
 - CRUD operations work.
 - Validation is implemented.
 - Tests pass.
@@ -411,6 +396,6 @@ The Stock Location module establishes the physical storage structure of the Bar 
 It provides:
 
 - Physical storage identity.
-- Branch ownership.
+- Business ownership.
 - Location organization.
 - The foundation for inventory, stock movement, transfers, and operational workflows.

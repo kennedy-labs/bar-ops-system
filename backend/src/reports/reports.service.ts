@@ -13,13 +13,9 @@ import { ProfitReport } from './types/profit-report';
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Validates that requested IDs belong to the authorized business.
-   */
-  async validateOwnership(filters: ReportFilterDto) {
-    const { businessId, branchId, shiftId, productId } = filters;
+  async validateOwnership(businessId: string, filters: { branchId?: string; shiftId?: string; productId?: string }) {
+    const { branchId, shiftId, productId } = filters;
 
-    // Verify business exists
     const business = await this.prisma.business.findUnique({
       where: { id: businessId },
     });
@@ -62,10 +58,10 @@ export class ReportsService {
     }
   }
 
-  async getInventoryReport(filters: ReportFilterDto): Promise<InventoryReport> {
-    await this.validateOwnership(filters);
+  async getInventoryReport(businessId: string, filters: ReportFilterDto): Promise<InventoryReport> {
+    await this.validateOwnership(businessId, filters);
 
-    const { businessId, branchId, productId } = filters;
+    const { branchId, productId } = filters;
 
     const where: any = {
       branch: { businessId },
@@ -97,9 +93,9 @@ export class ReportsService {
     };
   }
 
-  async getSalesReport(filters: ReportFilterDto): Promise<SalesReport> {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, productId, startDate, endDate } = filters;
+  async getSalesReport(businessId: string, filters: ReportFilterDto): Promise<SalesReport> {
+    await this.validateOwnership(businessId, filters);
+    const { branchId, productId, startDate, endDate } = filters;
     const where: any = { product: { businessId } };
     if (branchId) where.shift = { branchId };
     if (productId) where.productId = productId;
@@ -135,9 +131,9 @@ export class ReportsService {
     return { items, generatedAt: new Date() };
   }
 
-  async getExpenseReport(filters: ReportFilterDto): Promise<ExpenseReport> {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, startDate, endDate } = filters;
+  async getExpenseReport(businessId: string, filters: ReportFilterDto): Promise<ExpenseReport> {
+    await this.validateOwnership(businessId, filters);
+    const { branchId, startDate, endDate } = filters;
     const where: any = { branch: { businessId } };
     if (branchId) where.branchId = branchId;
     if (startDate || endDate) {
@@ -164,9 +160,9 @@ export class ReportsService {
     };
   }
 
-  async getMpesaReport(filters: ReportFilterDto): Promise<MpesaReport> {
-    await this.validateOwnership(filters);
-    const { businessId, startDate, endDate } = filters;
+  async getMpesaReport(businessId: string, filters: ReportFilterDto): Promise<MpesaReport> {
+    await this.validateOwnership(businessId, filters);
+    const { startDate, endDate } = filters;
     const where: any = { businessId };
     if (startDate || endDate) {
       where.transactionTime = {};
@@ -196,10 +192,11 @@ export class ReportsService {
   }
 
   async getDiscrepancyReport(
+    businessId: string,
     filters: ReportFilterDto,
   ): Promise<DiscrepancyReport> {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, startDate, endDate } = filters;
+    await this.validateOwnership(businessId, filters);
+    const { branchId, startDate, endDate } = filters;
     const where: any = { businessId };
     if (branchId) where.branchId = branchId;
     if (startDate || endDate) {
@@ -222,11 +219,10 @@ export class ReportsService {
     };
   }
 
-  async getProfitReport(filters: ReportFilterDto): Promise<ProfitReport> {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, startDate, endDate } = filters;
+  async getProfitReport(businessId: string, filters: ReportFilterDto): Promise<ProfitReport> {
+    await this.validateOwnership(businessId, filters);
+    const { branchId, startDate, endDate } = filters;
 
-    // 1. Get Sales (ShiftStockItems)
     const salesWhere: any = { product: { businessId } };
     if (branchId) salesWhere.shift = { branchId };
     if (startDate || endDate) {
@@ -252,7 +248,6 @@ export class ReportsService {
       );
       totalRevenue = totalRevenue.plus(revenue);
 
-      // Get historical cost at time of sale (simplification: latest cost for now)
       const costHistory = await this.prisma.productCostHistory.findFirst({
         where: { productId: sale.productId },
         orderBy: { effectiveAt: 'desc' },
@@ -263,7 +258,6 @@ export class ReportsService {
       totalCost = totalCost.plus(new Prisma.Decimal(soldQty).times(costPrice));
     }
 
-    // 2. Get Expenses
     const expWhere: any = { branch: { businessId } };
     if (branchId) expWhere.branchId = branchId;
     if (startDate || endDate) {
@@ -288,11 +282,10 @@ export class ReportsService {
     };
   }
 
-  async getSummary(filters: ReportFilterDto) {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, startDate, endDate } = filters;
+  async getSummary(businessId: string, filters: ReportFilterDto) {
+    await this.validateOwnership(businessId, filters);
+    const { branchId, startDate, endDate } = filters;
 
-    // 1. Revenue & Cost from Sales (ShiftStockItems)
     const salesWhere: any = { product: { businessId } };
     if (branchId) salesWhere.shift = { branchId };
     if (startDate || endDate) {
@@ -319,7 +312,6 @@ export class ReportsService {
         new Prisma.Decimal(soldQty).times(sale.product.sellingPrice),
       );
 
-      // Historical cost at sale time (latest effective cost).
       const costHistory = await this.prisma.productCostHistory.findFirst({
         where: { productId: sale.productId },
         orderBy: { effectiveAt: 'desc' },
@@ -330,7 +322,6 @@ export class ReportsService {
       totalCost = totalCost.plus(new Prisma.Decimal(soldQty).times(costPrice));
     }
 
-    // 2. Expenses
     const expWhere: any = { branch: { businessId } };
     if (branchId) expWhere.branchId = branchId;
     if (startDate || endDate) {
@@ -344,7 +335,6 @@ export class ReportsService {
       new Prisma.Decimal(0),
     );
 
-    // 3. Mpesa received
     const mpesaWhere: any = { businessId };
     if (startDate || endDate) {
       mpesaWhere.transactionTime = {};
@@ -359,7 +349,6 @@ export class ReportsService {
       new Prisma.Decimal(0),
     );
 
-    // 4. Discrepancies (accountability)
     const discWhere: any = { businessId };
     if (branchId) discWhere.branchId = branchId;
     if (startDate || endDate) {
@@ -374,7 +363,6 @@ export class ReportsService {
       (d) => d.status === 'OPEN',
     ).length;
 
-    // 5. Active shifts (open operations)
     const shiftWhere: any = { branch: { businessId } };
     if (branchId) shiftWhere.branchId = branchId;
     if (startDate || endDate) {
@@ -389,11 +377,9 @@ export class ReportsService {
     const netProfit = totalRevenue.minus(totalCost).minus(totalExpenses);
 
     return {
-      // Fields consumed by the owner dashboard
       revenue: totalRevenue.toNumber(),
       expenses: totalExpenses.toNumber(),
       net: netProfit.toNumber(),
-      // Full/precise equivalents for the shift result & detailed views
       totalRevenue: totalRevenue.toNumber(),
       totalCost: totalCost.toNumber(),
       totalExpenses: totalExpenses.toNumber(),
@@ -407,9 +393,9 @@ export class ReportsService {
     };
   }
 
-  async getShiftReport(filters: ReportFilterDto): Promise<any> {
-    await this.validateOwnership(filters);
-    const { businessId, branchId, shiftId } = filters;
+  async getShiftReport(businessId: string, filters: ReportFilterDto): Promise<any> {
+    await this.validateOwnership(businessId, filters);
+    const { branchId, shiftId } = filters;
     const where: any = { branch: { businessId } };
     if (branchId) where.branchId = branchId;
     if (shiftId) where.id = shiftId;

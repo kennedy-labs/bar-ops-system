@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -18,27 +19,27 @@ export class ProductCostHistoryController {
   ) {}
 
   @Get()
-  getAll() {
-    return this.productCostHistoryService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.productCostHistoryService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.productCostHistoryService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productCostHistoryService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateProductCostHistoryDto) {
-    return this.productCostHistoryService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateProductCostHistoryDto) {
+    return this.productCostHistoryService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateProductCostHistoryDto) {
-    return this.productCostHistoryService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateProductCostHistoryDto) {
+    return this.productCostHistoryService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productCostHistoryService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productCostHistoryService.remove(id, businessId);
   }
 }

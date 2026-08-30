@@ -118,6 +118,7 @@ Mpesa Account
 Fields
 id
 businessId
+branchId
 accountIdentifier
 displayName
 status
@@ -126,12 +127,15 @@ updatedAt
 Relationships
 Mpesa Account belongs to:
 Business
+Branch
 Mpesa Account has:
 MpesaTransaction[]
 Ownership
 Business
    │
-   └── Mpesa Account
+   └── Branch
+          │
+          └── Mpesa Account
           │
           └── Mpesa Transactions
 The Mpesa Account is the ownership boundary between a Business and its incoming Mpesa transaction records.
@@ -146,10 +150,13 @@ POST /mpesa-accounts
 Creates an Mpesa Account for a Business.
 Required Input
 businessId
+branchId
 accountIdentifier
 displayName
 Expected Behavior
 Verify the Business exists.
+Verify the Branch exists.
+Verify the Branch belongs to the Business.
 Verify the requester has permission to manage the Business.
 Normalize the account identifier.
 Check for an existing account with the same identifier under the Business.
@@ -259,6 +266,12 @@ model MpesaAccount {
   businessId String
   business Business @relation(
     fields: [businessId],
+    references: [id]
+  )
+
+  branchId String
+  branch Branch @relation(
+    fields: [branchId],
     references: [id]
   )
 

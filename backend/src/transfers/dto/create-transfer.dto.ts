@@ -5,7 +5,9 @@ export const CreateTransferSchema = z.object({
   businessId: z.string().min(1),
 
   senderBranchId: z.string().min(1),
+  senderLocationId: z.string().min(1),
   receiverBranchId: z.string().min(1),
+  receiverLocationId: z.string().min(1),
 
   senderUserId: z.string().min(1),
   receiverUserId: z.string().min(1).optional(),

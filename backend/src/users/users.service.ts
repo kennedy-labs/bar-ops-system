@@ -5,10 +5,15 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll(businessId?: string) {
-    return this.prisma.user.findMany({
-      where: businessId ? { businessId } : undefined,
-    });
+  async getAll(businessId?: string) {
+    if (businessId) {
+      const userBusinesses = await this.prisma.userBusiness.findMany({
+        where: { businessId },
+        include: { user: true },
+      });
+      return userBusinesses.map((ub) => ub.user);
+    }
+    return this.prisma.user.findMany();
   }
 
   getById(id: string) {
@@ -23,42 +28,78 @@ export class UsersService {
     });
   }
 
-  create(body: {
+  async create(body: {
     name: string;
     businessId: string;
     branchId?: string;
-    role?: 'OWNER' | 'MANAGER' | 'WORKER';
+    role?: 'OWNER' | 'WORKER';
     status?: 'ACTIVE' | 'INACTIVE';
     phone?: string;
     email?: string;
     password?: string;
   }) {
-    return this.prisma.user.create({
-      data: body as any,
+    const { businessId, ...userData } = body;
+    const user = await this.prisma.user.create({
+      data: userData as any,
     });
+
+    await this.prisma.userBusiness.create({
+      data: {
+        userId: user.id,
+        businessId,
+        role: body.role ?? 'WORKER',
+      },
+    });
+
+    return user;
   }
 
-  update(
+  async update(
     id: string,
     body: Partial<{
       name: string;
-      businessId: string;
       branchId?: string;
-      role?: 'OWNER' | 'MANAGER' | 'WORKER';
+      role?: 'OWNER' | 'WORKER';
       status?: 'ACTIVE' | 'INACTIVE';
       phone?: string;
       email?: string;
     }>,
   ) {
-    return this.prisma.user.update({
+    const { businessId, ...updateData } = body as any;
+    const user = await this.prisma.user.update({
       where: { id },
-      data: body as any,
+      data: updateData as any,
+    });
+
+    if (businessId) {
+      const existing = await this.prisma.userBusiness.findFirst({
+        where: { userId: id, businessId },
+      });
+      if (!existing) {
+        await this.prisma.userBusiness.create({
+          data: {
+            userId: id,
+            businessId,
+            role: body.role ?? 'WORKER',
+          },
+        });
+      }
+    }
+
+    return user;
+  }
+
+  async remove(id: string) {
+    await this.prisma.user.delete({
+      where: { id },
     });
   }
 
-  remove(id: string) {
-    return this.prisma.user.delete({
-      where: { id },
+  async getBusinessesForUser(userId: string) {
+    const userBusinesses = await this.prisma.userBusiness.findMany({
+      where: { userId },
+      include: { business: true },
     });
+    return userBusinesses.map((ub) => ub.business);
   }
 }

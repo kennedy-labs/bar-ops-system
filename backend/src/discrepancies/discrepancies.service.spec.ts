@@ -67,7 +67,6 @@ describe('DiscrepanciesService', () => {
     });
 
     const dto: CreateDiscrepancyDto = {
-      businessId: 'biz1',
       branchId: 'branch1',
       shiftId: 'shift1',
       type: 'STOCK_SHORTAGE',
@@ -78,7 +77,7 @@ describe('DiscrepanciesService', () => {
       resolution: undefined,
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -107,7 +106,6 @@ describe('DiscrepanciesService', () => {
     prisma.discrepancy.findUnique.mockResolvedValue(null);
 
     const dto: CreateDiscrepancyDto = {
-      businessId: 'biz1',
       branchId: 'branch1',
       type: 'CASH_SHORTAGE',
       expectedValue: 100,
@@ -115,7 +113,7 @@ describe('DiscrepanciesService', () => {
       sourceReference: 'cash-recon-1',
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(BadRequestException);
   });
 
   it('rejects duplicate sourceReference', async () => {
@@ -124,7 +122,6 @@ describe('DiscrepanciesService', () => {
     prisma.discrepancy.findUnique.mockResolvedValue({ id: 'disc1' });
 
     const dto: CreateDiscrepancyDto = {
-      businessId: 'biz1',
       branchId: 'branch1',
       type: 'MPESA_MISMATCH',
       expectedValue: 1000,
@@ -132,7 +129,7 @@ describe('DiscrepanciesService', () => {
       sourceReference: 'mpesa-recon-1',
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(ConflictException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(ConflictException);
   });
 
   it('retrieves discrepancies with business isolation and filters', async () => {
@@ -236,7 +233,6 @@ describe('DiscrepanciesService', () => {
     });
 
     const dto: CreateDiscrepancyDto = {
-      businessId: 'biz1',
       branchId: 'branch1',
       shiftId: 'shift1',
       type: 'MPESA_MISMATCH',
@@ -246,7 +242,7 @@ describe('DiscrepanciesService', () => {
       description: 'mpesa mismatch',
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -301,7 +297,6 @@ describe('DiscrepanciesService', () => {
     });
 
     const createDto: CreateDiscrepancyDto = {
-      businessId: 'biz1',
       branchId: 'branch1',
       shiftId: 'shift1',
       type: 'MPESA_MISMATCH',
@@ -311,7 +306,7 @@ describe('DiscrepanciesService', () => {
       description: 'mpesa lifecycle',
     } as any;
 
-    const created = await service.create(createDto);
+    const created = await service.create('biz1', createDto);
     expect(created.status).toBe('OPEN');
     expect(created.type).toBe('MPESA_MISMATCH');
 

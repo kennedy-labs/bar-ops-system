@@ -73,12 +73,12 @@ export class DiscrepanciesService {
     return discrepancy;
   }
 
-  async create(body: CreateDiscrepancyDto) {
+  async create(businessId: string, body: CreateDiscrepancyDto) {
     const business = await this.prisma.business.findUnique({
-      where: { id: body.businessId },
+      where: { id: businessId },
     });
     if (!business) {
-      throw new NotFoundException(`Business ${body.businessId} not found`);
+      throw new NotFoundException(`Business ${businessId} not found`);
     }
 
     const branch = await this.prisma.branch.findUnique({
@@ -130,13 +130,17 @@ export class DiscrepanciesService {
       data: {
         businessId: business.id,
         branchId: branch.id,
+        locationId: body.locationId,
         shiftId,
         transferId: body.transferId,
         stockMovementId: body.stockMovementId,
         expenseId: body.expenseId,
+        productId: body.productId,
         createdById: body.createdById,
         type: body.type,
         status: 'OPEN',
+        expectedQuantity: body.expectedQuantity,
+        actualQuantity: body.actualQuantity,
         expectedValue: body.expectedValue,
         actualValue: body.actualValue,
         variance,

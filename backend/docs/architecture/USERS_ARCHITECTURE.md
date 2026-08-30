@@ -92,7 +92,6 @@ User
 │
 ├── Role
 │   ├── Worker
-│   ├── Manager
 │   └── Owner
 │
 └── Operational Ownership

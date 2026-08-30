@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -16,27 +17,27 @@ export class InventoryItemsController {
   constructor(private readonly inventoryItemsService: InventoryItemsService) {}
 
   @Get()
-  getAll() {
-    return this.inventoryItemsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.inventoryItemsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.inventoryItemsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.inventoryItemsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateInventoryItemDto) {
-    return this.inventoryItemsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateInventoryItemDto) {
+    return this.inventoryItemsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateInventoryItemDto) {
-    return this.inventoryItemsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateInventoryItemDto) {
+    return this.inventoryItemsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.inventoryItemsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.inventoryItemsService.remove(id, businessId);
   }
 }

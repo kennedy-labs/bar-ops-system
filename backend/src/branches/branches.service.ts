@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
@@ -7,30 +7,32 @@ import { UpdateBranchDto } from './dto/update-branch.dto';
 export class BranchesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.branch.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.branch.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.branch.findMany({
+      where: { businessId },
     });
   }
 
-  create(dto: CreateBranchDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.branch.findFirst({
+      where: { id, businessId },
+    });
+  }
+
+  create(businessId: string, dto: CreateBranchDto) {
     return this.prisma.branch.create({
-      data: dto,
+      data: { ...dto, businessId },
     });
   }
 
-  update(id: string, dto: UpdateBranchDto) {
+  update(id: string, businessId: string, dto: UpdateBranchDto) {
     return this.prisma.branch.update({
       where: { id },
       data: dto,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.branch.delete({
       where: { id },
     });

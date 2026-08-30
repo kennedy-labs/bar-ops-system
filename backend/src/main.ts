@@ -3,13 +3,15 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { BusinessGuard } from './auth/guards/business.guard';
+import { Public } from './auth/guards/jwt-auth.guard';
+import { Reflector } from '@nestjs/core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const reflector = app.get(Reflector);
 
-  // CORS. Security has been removed for testing; allow all origins so the
-  // app works from any frontend (Vercel production, preview/deployment URLs,
-  // localhost). Tighten this with CORS_ORIGIN when hardening for production.
   app.enableCors({
     origin(origin, callback) {
       callback(null, true);
@@ -21,6 +23,9 @@ async function bootstrap() {
   app.useGlobalPipes(new ZodValidationPipe());
 
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  app.useGlobalGuards(new JwtAuthGuard(reflector));
+  app.useGlobalGuards(new BusinessGuard(reflector));
 
   const config = new DocumentBuilder()
     .setTitle('Bar Operations System API')

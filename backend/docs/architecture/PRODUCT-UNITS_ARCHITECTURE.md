@@ -125,6 +125,7 @@ backend/
 - name
 - symbol
 - quantity
+- conversionFactor
 - isDefault
 - status
 - createdAt
@@ -318,6 +319,8 @@ model ProductUnit {
   symbol String
 
   quantity Decimal
+
+  conversionFactor Decimal?
 
   isDefault Boolean @default(false)
 

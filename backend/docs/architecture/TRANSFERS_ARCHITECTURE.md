@@ -139,7 +139,9 @@ backend/
 - id
 - businessId
 - senderBranchId
+- senderLocationId
 - receiverBranchId
+- receiverLocationId
 - senderUserId
 - receiverUserId
 - status
@@ -400,8 +402,14 @@ model Transfer {
   senderBranchId String
   senderBranch Branch @relation("SenderTransfers", fields: [senderBranchId], references: [id])
 
+  senderLocationId String
+  senderLocation StockLocation @relation("SenderTransfers", fields: [senderLocationId], references: [id])
+
   receiverBranchId String
   receiverBranch Branch @relation("ReceiverTransfers", fields: [receiverBranchId], references: [id])
+
+  receiverLocationId String
+  receiverLocation StockLocation @relation("ReceiverTransfers", fields: [receiverLocationId], references: [id])
 
   senderUserId String
   senderUser User @relation("SenderTransfers", fields: [senderUserId], references: [id])

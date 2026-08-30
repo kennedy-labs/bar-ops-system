@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Post,
   Query,
@@ -17,7 +18,7 @@ export class DiscrepanciesController {
 
   @Get()
   getAll(
-    @Query('businessId') businessId: string,
+    @Headers('x-business-id') businessId: string,
     @Query('branchId') branchId?: string,
     @Query('shiftId') shiftId?: string,
     @Query('type') type?: string,
@@ -39,7 +40,7 @@ export class DiscrepanciesController {
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @Query('businessId') businessId: string) {
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
     if (!businessId) {
       throw new BadRequestException('businessId is required');
     }
@@ -47,14 +48,14 @@ export class DiscrepanciesController {
   }
 
   @Post()
-  create(@Body() body: CreateDiscrepancyDto) {
-    return this.discrepanciesService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateDiscrepancyDto) {
+    return this.discrepanciesService.create(businessId, body);
   }
 
   @Post(':id/resolve')
   resolve(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Headers('x-business-id') businessId: string,
     @Body() body: ResolveDiscrepancyDto,
   ) {
     if (!businessId) {

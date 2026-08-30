@@ -6,6 +6,7 @@ export const CloseShiftSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string().min(1),
+      productUnitId: z.string().min(1),
       actualQuantity: z.number().int().min(0),
       addedQuantity: z.number().int().min(0).optional(),
     }),

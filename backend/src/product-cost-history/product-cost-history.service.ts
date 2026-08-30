@@ -7,30 +7,32 @@ import { UpdateProductCostHistoryDto } from './dto/update-product-cost-history.d
 export class ProductCostHistoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.productCostHistory.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.productCostHistory.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.productCostHistory.findMany({
+      where: { product: { businessId } },
     });
   }
 
-  create(body: CreateProductCostHistoryDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.productCostHistory.findFirst({
+      where: { id, product: { businessId } },
+    });
+  }
+
+  create(businessId: string, body: CreateProductCostHistoryDto) {
     return this.prisma.productCostHistory.create({
       data: body,
     });
   }
 
-  update(id: string, body: UpdateProductCostHistoryDto) {
+  update(id: string, businessId: string, body: UpdateProductCostHistoryDto) {
     return this.prisma.productCostHistory.update({
       where: { id },
       data: body,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.productCostHistory.delete({
       where: { id },
     });

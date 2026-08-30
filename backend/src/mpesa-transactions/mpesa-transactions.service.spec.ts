@@ -20,7 +20,7 @@ describe('MpesaTransactionsService', () => {
     id: 'tx1',
     businessId: 'biz1',
     mpesaAccountId: 'account1',
-    externalTransactionId: 'ext-1',
+    transactionReference: 'ext-1',
     amount: 100,
     transactionTime: new Date().toISOString(),
     status: 'RECEIVED',
@@ -31,6 +31,7 @@ describe('MpesaTransactionsService', () => {
   beforeEach(async () => {
     prisma = {
       business: { findUnique: jest.fn() },
+      branch: { findUnique: jest.fn().mockResolvedValue({ id: 'branch1', businessId: 'biz1' }) },
       mpesaAccount: { findFirst: jest.fn() },
       shift: { findFirst: jest.fn() },
       mpesaTransaction: {
@@ -63,21 +64,21 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaTransaction.create.mockResolvedValue(transaction);
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(result).toEqual(transaction);
     expect(prisma.mpesaTransaction.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         businessId: 'biz1',
         mpesaAccountId: 'account1',
-        externalTransactionId: 'ext-1',
+        transactionReference: 'ext-1',
         amount: 100,
         status: 'RECEIVED',
       }),
@@ -87,28 +88,28 @@ describe('MpesaTransactionsService', () => {
   it('throws NotFoundException if business does not exist', async () => {
     prisma.business.findUnique.mockResolvedValue(null);
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
   });
 
   it('throws NotFoundException if mpesa account is missing', async () => {
     prisma.business.findUnique.mockResolvedValue(business);
     prisma.mpesaAccount.findFirst.mockResolvedValue(null);
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
   });
 
   it('throws BadRequestException if account is inactive', async () => {
@@ -118,14 +119,14 @@ describe('MpesaTransactionsService', () => {
       status: 'INACTIVE',
     });
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(BadRequestException);
   });
 
   it('attaches shiftId when the shift belongs to the same business and is eligible', async () => {
@@ -145,15 +146,14 @@ describe('MpesaTransactionsService', () => {
     });
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
       shiftId: 'shift1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(result).toEqual({
       ...transaction,
@@ -185,36 +185,35 @@ describe('MpesaTransactionsService', () => {
       closedAt: new Date('2026-08-09T12:00:00Z'),
     });
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
       shiftId: 'shift1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(BadRequestException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(BadRequestException);
   });
 
-  it('returns existing transaction for duplicate mpesaAccountId and externalTransactionId', async () => {
+  it('returns existing transaction for duplicate mpesaAccountId and transactionReference', async () => {
     prisma.business.findUnique.mockResolvedValue(business);
     prisma.mpesaAccount.findFirst.mockResolvedValue(account);
     prisma.mpesaTransaction.findFirst.mockResolvedValue(transaction);
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(prisma.mpesaTransaction.findFirst).toHaveBeenCalledWith({
       where: {
         mpesaAccountId: 'account1',
-        externalTransactionId: 'ext-1',
+        transactionReference: 'ext-1',
       },
     });
     expect(result).toEqual(transaction);
@@ -229,14 +228,14 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaTransaction.create.mockRejectedValueOnce({ code: 'P2002' });
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const result = await service.create(dto);
+    const result = await service.create('biz1', dto);
 
     expect(prisma.mpesaTransaction.create).toHaveBeenCalled();
     expect(result).toEqual(transaction);
@@ -244,9 +243,8 @@ describe('MpesaTransactionsService', () => {
 
   it('rejects ingestion for a deactivated account while preserving prior history', async () => {
     const firstDto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
@@ -256,12 +254,12 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaTransaction.findFirst.mockResolvedValueOnce(null);
     prisma.mpesaTransaction.create.mockResolvedValueOnce(transaction);
 
-    const created = await service.create(firstDto);
+    const created = await service.create('biz1', firstDto);
     expect(created).toEqual(transaction);
 
     const secondDto: CreateMpesaTransactionDto = {
       ...firstDto,
-      externalTransactionId: 'ext-2',
+      transactionReference: 'ext-2',
     } as any;
 
     prisma.mpesaAccount.findFirst.mockResolvedValueOnce({
@@ -269,7 +267,7 @@ describe('MpesaTransactionsService', () => {
       status: 'INACTIVE',
     });
 
-    await expect(service.create(secondDto)).rejects.toThrow(
+    await expect(service.create('biz1', secondDto)).rejects.toThrow(
       BadRequestException,
     );
   });
@@ -282,14 +280,13 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaAccount.findFirst.mockResolvedValue(null);
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz2',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-3',
+      transactionReference: 'ext-3',
       amount: 50,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz2', dto)).rejects.toThrow(NotFoundException);
   });
 
   it('returns transaction by id only when business matches', async () => {
@@ -364,14 +361,14 @@ describe('MpesaTransactionsService', () => {
         ...transaction,
         id: 'txB',
         amount: 1000,
-        externalTransactionId: 'ext-2',
+        transactionReference: 'ext-2',
         shiftId: 'shift1',
       },
       {
         ...transaction,
         id: 'txC',
         amount: 750,
-        externalTransactionId: 'ext-3',
+        transactionReference: 'ext-3',
         shiftId: 'shift1',
       },
     ];
@@ -388,7 +385,7 @@ describe('MpesaTransactionsService', () => {
       .mockResolvedValue(shiftTransactions);
 
     const result = await service.getByShift('shift1', 'biz1');
-    const total = result.reduce((sum, tx) => sum + tx.amount, 0);
+    const total = result.reduce((sum, tx) => sum + Number(tx.amount), 0);
 
     expect(result).toEqual(shiftTransactions);
     expect(total).toEqual(2250);
@@ -403,15 +400,15 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaTransaction.create.mockResolvedValue(transaction);
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const first = await service.create(dto);
-    const second = await service.create(dto);
+    const first = await service.create('biz1', dto);
+    const second = await service.create('biz1', dto);
 
     expect(first).toEqual(transaction);
     expect(second).toEqual(transaction);
@@ -426,7 +423,7 @@ describe('MpesaTransactionsService', () => {
       id: 'txB',
       businessId: 'biz2',
       mpesaAccountId: 'account2',
-      externalTransactionId: 'ext-2',
+      transactionReference: 'ext-2',
     };
 
     prisma.mpesaTransaction.findFirst = jest.fn(({ where }) => {
@@ -453,15 +450,14 @@ describe('MpesaTransactionsService', () => {
     prisma.shift.findFirst.mockResolvedValue(null);
 
     const dto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
       shiftId: 'foreign-shift',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
   });
 
   it('preserves existing shift attribution when duplicate transaction is resubmitted with a different shift', async () => {
@@ -485,25 +481,23 @@ describe('MpesaTransactionsService', () => {
     prisma.mpesaTransaction.create.mockResolvedValueOnce(firstTransaction);
 
     const firstDto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
       shiftId: 'shift1',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
     const secondDto: CreateMpesaTransactionDto = {
-      businessId: 'biz1',
       mpesaAccountId: 'account1',
       shiftId: 'shift2',
-      externalTransactionId: 'ext-1',
+      transactionReference: 'ext-1',
       amount: 100,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    const first = await service.create(firstDto);
-    const second = await service.create(secondDto);
+    const first = await service.create('biz1', firstDto);
+    const second = await service.create('biz1', secondDto);
 
     expect(first.shiftId).toEqual('shift1');
     expect(second.shiftId).toEqual('shift1');
@@ -530,8 +524,8 @@ describe('MpesaTransactionsService', () => {
     expect(result).toEqual(updated);
     expect(result.amount).toEqual(transaction.amount);
     expect(result.transactionTime).toEqual(transaction.transactionTime);
-    expect(result.externalTransactionId).toEqual(
-      transaction.externalTransactionId,
+    expect(result.transactionReference).toEqual(
+      transaction.transactionReference,
     );
     expect(result.mpesaAccountId).toEqual(transaction.mpesaAccountId);
   });
@@ -556,8 +550,8 @@ describe('MpesaTransactionsService', () => {
     expect(result.status).toEqual('DISPUTED');
     expect(result.amount).toEqual(transaction.amount);
     expect(result.transactionTime).toEqual(transaction.transactionTime);
-    expect(result.externalTransactionId).toEqual(
-      transaction.externalTransactionId,
+    expect(result.transactionReference).toEqual(
+      transaction.transactionReference,
     );
     expect(result.mpesaAccountId).toEqual(transaction.mpesaAccountId);
   });

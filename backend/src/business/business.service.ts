@@ -11,8 +11,12 @@ import { UpdateBusinessDto } from './dto/update-business.dto';
 export class BusinessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.business.findMany();
+  async getBusinessesForUser(userId: string) {
+    const userBusinesses = await this.prisma.userBusiness.findMany({
+      where: { userId },
+      include: { business: true },
+    });
+    return userBusinesses.map((ub) => ub.business);
   }
 
   async getById(id: string) {
@@ -56,7 +60,6 @@ export class BusinessService {
         where: { id },
       });
     } catch (error) {
-      // Foreign key constraint violation - business has dependent operational data
       throw new ConflictException(
         `Business ${id} cannot be deleted because it has dependent operational data`,
       );

@@ -7,30 +7,32 @@ import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 export class InventoryItemsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getAll() {
-    return this.prisma.inventoryItem.findMany();
-  }
-
-  getById(id: string) {
-    return this.prisma.inventoryItem.findUnique({
-      where: { id },
+  getAll(businessId: string) {
+    return this.prisma.inventoryItem.findMany({
+      where: { branch: { businessId } },
     });
   }
 
-  create(body: CreateInventoryItemDto) {
+  getById(id: string, businessId: string) {
+    return this.prisma.inventoryItem.findFirst({
+      where: { id, branch: { businessId } },
+    });
+  }
+
+  create(businessId: string, body: CreateInventoryItemDto) {
     return this.prisma.inventoryItem.create({
-      data: body,
+      data: body as any,
     });
   }
 
-  update(id: string, body: UpdateInventoryItemDto) {
+  update(id: string, businessId: string, body: UpdateInventoryItemDto) {
     return this.prisma.inventoryItem.update({
       where: { id },
       data: body,
     });
   }
 
-  remove(id: string) {
+  remove(id: string, businessId: string) {
     return this.prisma.inventoryItem.delete({
       where: { id },
     });

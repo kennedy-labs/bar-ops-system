@@ -7,28 +7,37 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateMpesaTransactionDto } from './dto/create-mpesa-transaction.dto';
 import { UpdateMpesaTransactionDto } from './dto/update-mpesa-transaction.dto';
 
-// Service boundary: owns validation, account verification, business ownership,
-// duplicate detection, transaction creation, shift attribution, and status transitions.
-// Must not create Mpesa Accounts, modify Shift records, calculate payment summaries,
-// create discrepancies, or generate reports.
 @Injectable()
 export class MpesaTransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(body: CreateMpesaTransactionDto) {
+  async create(businessId: string, body: CreateMpesaTransactionDto) {
     const business = await this.prisma.business.findUnique({
-      where: { id: body.businessId },
+      where: { id: businessId },
     });
     if (!business) {
-      throw new NotFoundException(`Business ${body.businessId} not found`);
+      throw new NotFoundException(`Business ${businessId} not found`);
+    }
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: body.branchId },
+    });
+    if (!branch) {
+      throw new NotFoundException(`Branch ${body.branchId} not found`);
+    }
+
+    if (branch.businessId !== business.id) {
+      throw new BadRequestException(
+        `Branch ${body.branchId} does not belong to business ${business.id}`,
+      );
     }
 
     const mpesaAccount = await this.prisma.mpesaAccount.findFirst({
-      where: { id: body.mpesaAccountId, businessId: body.businessId },
+      where: { id: body.mpesaAccountId, businessId },
     });
     if (!mpesaAccount) {
       throw new NotFoundException(
-        `Mpesa account ${body.mpesaAccountId} not found for business ${body.businessId}`,
+        `Mpesa account ${body.mpesaAccountId} not found for business ${businessId}`,
       );
     }
 
@@ -52,7 +61,7 @@ export class MpesaTransactionsService {
     const existingTransaction = await this.prisma.mpesaTransaction.findFirst({
       where: {
         mpesaAccountId: body.mpesaAccountId,
-        externalTransactionId: body.externalTransactionId,
+        transactionReference: body.transactionReference,
       },
     });
     if (existingTransaction) {
@@ -65,13 +74,13 @@ export class MpesaTransactionsService {
         where: {
           id: body.shiftId,
           branch: {
-            businessId: body.businessId,
+            businessId,
           },
         },
       });
       if (!shift) {
         throw new NotFoundException(
-          `Shift ${body.shiftId} not found for business ${body.businessId}`,
+          `Shift ${body.shiftId} not found for business ${businessId}`,
         );
       }
       if (shift.closedAt !== null) {
@@ -85,13 +94,18 @@ export class MpesaTransactionsService {
     try {
       return await this.prisma.mpesaTransaction.create({
         data: {
-          businessId: body.businessId,
+          businessId,
+          branchId: body.branchId,
           mpesaAccountId: body.mpesaAccountId,
           shiftId,
-          externalTransactionId: body.externalTransactionId,
+          transactionReference: body.transactionReference,
+          transactionType: body.transactionType,
           amount: body.amount,
           transactionTime,
+          sender: body.sender,
+          receiver: body.receiver,
           status: 'RECEIVED',
+          reconciliationStatus: 'UNRECONCILED',
         },
       });
     } catch (error: any) {
@@ -99,7 +113,7 @@ export class MpesaTransactionsService {
         const retryTransaction = await this.prisma.mpesaTransaction.findFirst({
           where: {
             mpesaAccountId: body.mpesaAccountId,
-            externalTransactionId: body.externalTransactionId,
+            transactionReference: body.transactionReference,
           },
         });
         if (retryTransaction) {
@@ -126,8 +140,11 @@ export class MpesaTransactionsService {
     businessId: string,
     filters: {
       mpesaAccountId?: string;
+      branchId?: string;
       shiftId?: string;
+      transactionType?: string;
       status?: string;
+      reconciliationStatus?: string;
       from?: string;
       to?: string;
     } = {},
@@ -137,11 +154,20 @@ export class MpesaTransactionsService {
     if (filters.mpesaAccountId) {
       where.mpesaAccountId = filters.mpesaAccountId;
     }
+    if (filters.branchId) {
+      where.branchId = filters.branchId;
+    }
     if (filters.shiftId) {
       where.shiftId = filters.shiftId;
     }
+    if (filters.transactionType) {
+      where.transactionType = filters.transactionType;
+    }
     if (filters.status) {
       where.status = filters.status;
+    }
+    if (filters.reconciliationStatus) {
+      where.reconciliationStatus = filters.reconciliationStatus;
     }
     if (filters.from || filters.to) {
       where.transactionTime = {};
@@ -179,15 +205,21 @@ export class MpesaTransactionsService {
       );
     }
 
-    if (!body.status) {
+    const data: any = {};
+    if (body.status) {
+      data.status = body.status;
+    }
+    if (body.reconciliationStatus) {
+      data.reconciliationStatus = body.reconciliationStatus;
+    }
+
+    if (Object.keys(data).length === 0) {
       return transaction;
     }
 
     return this.prisma.mpesaTransaction.update({
       where: { id },
-      data: {
-        status: body.status,
-      },
+      data,
     });
   }
 

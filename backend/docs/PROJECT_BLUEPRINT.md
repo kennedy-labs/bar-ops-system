@@ -173,7 +173,6 @@ A person who performs operational activities within the business.
 Examples include:
 
 - Owner
-- Manager
 - Worker
 
 ## Product

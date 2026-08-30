@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMpesaAccountDto } from './dto/create-mpesa-account.dto';
@@ -10,13 +11,27 @@ import { CreateMpesaAccountDto } from './dto/create-mpesa-account.dto';
 export class MpesaAccountsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(body: CreateMpesaAccountDto) {
+  async create(businessId: string, body: CreateMpesaAccountDto) {
     const business = await this.prisma.business.findUnique({
-      where: { id: body.businessId },
+      where: { id: businessId },
     });
 
     if (!business) {
-      throw new NotFoundException(`Business ${body.businessId} not found`);
+      throw new NotFoundException(`Business ${businessId} not found`);
+    }
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: body.branchId },
+    });
+
+    if (!branch) {
+      throw new NotFoundException(`Branch ${body.branchId} not found`);
+    }
+
+    if (branch.businessId !== business.id) {
+      throw new BadRequestException(
+        `Branch ${body.branchId} does not belong to business ${business.id}`,
+      );
     }
 
     const accountIdentifier = this.normalizeAccountIdentifier(
@@ -25,22 +40,24 @@ export class MpesaAccountsService {
 
     const existingAccount = await this.prisma.mpesaAccount.findFirst({
       where: {
-        businessId: body.businessId,
+        businessId,
         accountIdentifier,
       },
     });
 
     if (existingAccount) {
       throw new ConflictException(
-        `Mpesa account ${accountIdentifier} already exists for business ${body.businessId}`,
+        `Mpesa account ${accountIdentifier} already exists for business ${businessId}`,
       );
     }
 
     return this.prisma.mpesaAccount.create({
       data: {
-        businessId: body.businessId,
+        businessId,
+        branchId: body.branchId,
         accountIdentifier,
         displayName: body.displayName,
+        accountType: body.accountType,
         status: 'ACTIVE',
       },
     });
@@ -72,7 +89,7 @@ export class MpesaAccountsService {
   async update(
     id: string,
     businessId: string,
-    body: Partial<{ accountIdentifier: string; displayName: string }>,
+    body: Partial<{ accountIdentifier: string; displayName: string; accountType: string; status: string }>,
   ) {
     const account = await this.prisma.mpesaAccount.findFirst({
       where: { id, businessId },
@@ -101,6 +118,14 @@ export class MpesaAccountsService {
 
     if (body.displayName) {
       data.displayName = body.displayName;
+    }
+
+    if (body.accountType) {
+      data.accountType = body.accountType;
+    }
+
+    if (body.status) {
+      data.status = body.status;
     }
 
     if (Object.keys(data).length === 0) return account;

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -16,27 +17,27 @@ export class StockMovementsController {
   constructor(private readonly stockMovementsService: StockMovementsService) {}
 
   @Get()
-  getAll() {
-    return this.stockMovementsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.stockMovementsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.stockMovementsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.stockMovementsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateStockMovementDto) {
-    return this.stockMovementsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateStockMovementDto) {
+    return this.stockMovementsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateStockMovementDto) {
-    return this.stockMovementsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateStockMovementDto) {
+    return this.stockMovementsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.stockMovementsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.stockMovementsService.remove(id, businessId);
   }
 }

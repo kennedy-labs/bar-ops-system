@@ -25,6 +25,9 @@ describe('MpesaAccountsService', () => {
       business: {
         findUnique: jest.fn(),
       },
+      branch: {
+        findUnique: jest.fn(),
+      },
       mpesaAccount: {
         findFirst: jest.fn(),
         create: jest.fn(),
@@ -52,21 +55,23 @@ describe('MpesaAccountsService', () => {
   describe('create', () => {
     it('creates an active Mpesa account when business exists and no duplicate exists', async () => {
       prisma.business.findUnique.mockResolvedValue(business);
+      prisma.branch.findUnique.mockResolvedValue({ id: 'branch1', businessId: 'biz1' });
       prisma.mpesaAccount.findFirst.mockResolvedValue(null);
       prisma.mpesaAccount.create.mockResolvedValue(account);
 
       const dto: CreateMpesaAccountDto = {
-        businessId: 'biz1',
+        branchId: 'branch1',
         accountIdentifier: 'MPESA123',
         displayName: 'Primary Mpesa',
       } as any;
 
-      const result = await service.create(dto);
+      const result = await service.create('biz1', dto);
 
       expect(result).toEqual(account);
       expect(prisma.mpesaAccount.create).toHaveBeenCalledWith({
         data: {
           businessId: 'biz1',
+          branchId: 'branch1',
           accountIdentifier: 'MPESA123',
           displayName: 'Primary Mpesa',
           status: 'ACTIVE',
@@ -78,25 +83,25 @@ describe('MpesaAccountsService', () => {
       prisma.business.findUnique.mockResolvedValue(null);
 
       const dto: CreateMpesaAccountDto = {
-        businessId: 'biz1',
         accountIdentifier: 'MPESA123',
         displayName: 'Primary Mpesa',
       } as any;
 
-      await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+      await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
     });
 
     it('throws ConflictException when duplicate account exists', async () => {
       prisma.business.findUnique.mockResolvedValue(business);
+      prisma.branch.findUnique.mockResolvedValue({ id: 'branch1', businessId: 'biz1' });
       prisma.mpesaAccount.findFirst.mockResolvedValue(account);
 
       const dto: CreateMpesaAccountDto = {
-        businessId: 'biz1',
+        branchId: 'branch1',
         accountIdentifier: 'MPESA123',
         displayName: 'Primary Mpesa',
       } as any;
 
-      await expect(service.create(dto)).rejects.toThrow(ConflictException);
+      await expect(service.create('biz1', dto)).rejects.toThrow(ConflictException);
     });
   });
 

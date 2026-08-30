@@ -127,7 +127,12 @@ Shift Stock Items
 ├── Opening Quantity
 ├── Physical Opening Quantity
 ├── Opening Verification
+├── Added Quantity
 ├── Closing Quantity
+├── Sold Quantity
+├── Revenue
+├── Cost
+├── Gross Profit
 │
 ├── Business Ownership
 ├── Branch Ownership
@@ -168,13 +173,20 @@ Conceptual fields:
 
 id
 shiftId
+businessId
+branchId
 productId
 productUnitId
 stockLocationId
 openingQuantity
 physicalOpeningQuantity
 openingVerified
+addedQuantity
 closingQuantity
+soldQuantity
+revenue
+cost
+grossProfit
 createdAt
 updatedAt
 
@@ -618,17 +630,17 @@ If any required closing operation fails, the shift must not be falsely represent
 
 36. Calculations
 
-Shift Stock Items provide quantities required for reconciliation.
+Shift Stock Items provide quantities and financial values required for reconciliation.
 
-Example:
+Quantity calculation:
 
-Opening Stock
+Sold Quantity = Opening Quantity + Added Quantity - Closing Quantity
 
-- Stock Added
+Financial calculation:
 
-* Stock Reduced
-* # Stock Transferred
-  Expected Closing Stock
+Revenue = sum of sales amounts for the product during the shift
+Cost = sum of product cost values for quantities sold during the shift
+Gross Profit = Revenue - Cost
 
 The exact business reconciliation formula must come from the established Shift/Profit architecture.
 

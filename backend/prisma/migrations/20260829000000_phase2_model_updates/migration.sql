@@ -1,0 +1,2 @@
+-- Phase 2 model updates applied via db push
+-- See schema.prisma for current model definitions

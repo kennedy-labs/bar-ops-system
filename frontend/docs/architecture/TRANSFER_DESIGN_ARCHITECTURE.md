@@ -176,7 +176,9 @@ Transfer
 │
 ├── id
 ├── businessId
+├── senderBranchId
 ├── fromLocationId
+├── receiverBranchId
 ├── toLocationId
 ├── status
 ├── initiatedBy

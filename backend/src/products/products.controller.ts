@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -16,27 +17,27 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  getAll() {
-    return this.productsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.productsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.productsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateProductDto) {
-    return this.productsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateProductDto) {
+    return this.productsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateProductDto) {
-    return this.productsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateProductDto) {
+    return this.productsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.productsService.remove(id, businessId);
   }
 }

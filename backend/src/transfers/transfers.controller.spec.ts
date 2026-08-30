@@ -45,10 +45,10 @@ describe('TransfersController', () => {
       const expectedTransfers = [{ id: '1' }, { id: '2' }];
       mockTransfersService.getAll.mockResolvedValue(expectedTransfers);
 
-      const result = await controller.getAll();
+      const result = await controller.getAll('biz1');
 
       expect(result).toEqual(expectedTransfers);
-      expect(mockTransfersService.getAll).toHaveBeenCalled();
+      expect(mockTransfersService.getAll).toHaveBeenCalledWith('biz1');
     });
   });
 
@@ -57,10 +57,10 @@ describe('TransfersController', () => {
       const expectedTransfer = { id: '1' };
       mockTransfersService.getById.mockResolvedValue(expectedTransfer);
 
-      const result = await controller.getById('1');
+      const result = await controller.getById('1', 'biz1');
 
       expect(result).toEqual(expectedTransfer);
-      expect(mockTransfersService.getById).toHaveBeenCalledWith('1');
+      expect(mockTransfersService.getById).toHaveBeenCalledWith('1', 'biz1');
     });
   });
 
@@ -69,16 +69,18 @@ describe('TransfersController', () => {
       const dto = {
         businessId: 'biz1',
         senderBranchId: 'branch1',
+        senderLocationId: 'loc1',
         receiverBranchId: 'branch2',
+        receiverLocationId: 'loc2',
         senderUserId: 'user1',
       };
       const expectedTransfer = { id: '1', ...dto };
       mockTransfersService.create.mockResolvedValue(expectedTransfer);
 
-      const result = await controller.create(dto);
+      const result = await controller.create('biz1', dto);
 
       expect(result).toEqual(expectedTransfer);
-      expect(mockTransfersService.create).toHaveBeenCalledWith(dto);
+      expect(mockTransfersService.create).toHaveBeenCalledWith('biz1', dto);
     });
   });
 
@@ -89,10 +91,10 @@ describe('TransfersController', () => {
       };
       mockTransfersService.addItems.mockResolvedValue({ count: 1 });
 
-      const result = await controller.addItems('1', dto);
+      const result = await controller.addItems('1', 'biz1', dto);
 
       expect(result).toEqual({ count: 1 });
-      expect(mockTransfersService.addItems).toHaveBeenCalledWith('1', dto);
+      expect(mockTransfersService.addItems).toHaveBeenCalledWith('1', 'biz1', dto);
     });
   });
 
@@ -104,10 +106,10 @@ describe('TransfersController', () => {
         status: 'SENDER_CONFIRMED',
       });
 
-      const result = await controller.dispatch('1', dto);
+      const result = await controller.dispatch('1', 'biz1', dto);
 
       expect(result).toEqual({ id: '1', status: 'SENDER_CONFIRMED' });
-      expect(mockTransfersService.dispatch).toHaveBeenCalledWith('1', dto);
+      expect(mockTransfersService.dispatch).toHaveBeenCalledWith('1', 'biz1', dto);
     });
   });
 
@@ -119,10 +121,10 @@ describe('TransfersController', () => {
         status: 'COMPLETED',
       });
 
-      const result = await controller.receive('1', dto);
+      const result = await controller.receive('1', 'biz1', dto);
 
       expect(result).toEqual({ id: '1', status: 'COMPLETED' });
-      expect(mockTransfersService.receive).toHaveBeenCalledWith('1', dto);
+      expect(mockTransfersService.receive).toHaveBeenCalledWith('1', 'biz1', dto);
     });
   });
 
@@ -131,10 +133,10 @@ describe('TransfersController', () => {
       const expected = [{ id: 'd1' }];
       mockTransfersService.getDiscrepancies.mockResolvedValue(expected);
 
-      const result = await controller.getDiscrepancies('1');
+      const result = await controller.getDiscrepancies('1', 'biz1');
 
       expect(result).toEqual(expected);
-      expect(mockTransfersService.getDiscrepancies).toHaveBeenCalledWith('1');
+      expect(mockTransfersService.getDiscrepancies).toHaveBeenCalledWith('1', 'biz1');
     });
   });
 
@@ -143,10 +145,10 @@ describe('TransfersController', () => {
       const expected = [{ id: 'sm1' }];
       mockTransfersService.getStockMovements.mockResolvedValue(expected);
 
-      const result = await controller.getStockMovements('1');
+      const result = await controller.getStockMovements('1', 'biz1');
 
       expect(result).toEqual(expected);
-      expect(mockTransfersService.getStockMovements).toHaveBeenCalledWith('1');
+      expect(mockTransfersService.getStockMovements).toHaveBeenCalledWith('1', 'biz1');
     });
   });
 
@@ -155,12 +157,13 @@ describe('TransfersController', () => {
       const expected = [{ id: '1' }];
       mockTransfersService.getByBranch.mockResolvedValue(expected);
 
-      const result = await controller.getByBranch('branch1', 'SENDER');
+      const result = await controller.getByBranch('branch1', 'SENDER', 'biz1');
 
       expect(result).toEqual(expected);
       expect(mockTransfersService.getByBranch).toHaveBeenCalledWith(
         'branch1',
         'SENDER',
+        'biz1',
       );
     });
   });

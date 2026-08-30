@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -18,37 +19,37 @@ export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
 
   @Post('close')
-  close(@Body() body: CloseShiftDto) {
-    return this.shiftsService.close(body);
+  close(@Headers('x-business-id') businessId: string, @Body() body: CloseShiftDto) {
+    return this.shiftsService.close(businessId, body);
   }
 
   @Get()
-  getAll() {
-    return this.shiftsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.shiftsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.shiftsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.shiftsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateShiftDto) {
-    return this.shiftsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateShiftDto) {
+    return this.shiftsService.create(businessId, body);
   }
 
   @Post('open')
-  open(@Body() body: ShiftOpenDto) {
-    return this.shiftsService.open(body);
+  open(@Headers('x-business-id') businessId: string, @Body() body: ShiftOpenDto) {
+    return this.shiftsService.open(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateShiftDto) {
-    return this.shiftsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateShiftDto) {
+    return this.shiftsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.shiftsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.shiftsService.remove(id, businessId);
   }
 }

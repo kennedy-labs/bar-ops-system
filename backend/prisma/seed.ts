@@ -27,7 +27,7 @@ async function main() {
   // 3. Create Product (unique name within business)
   const product = await prisma.product.upsert({
     where: { businessId_name: { businessId: business.id, name: 'Tusker(canned)' } },
-    update: { sellingPrice: 280 },
+    update: { name: 'Tusker(canned)' },
     create: {
       name: 'Tusker(canned)',
       sellingPrice: 280,
@@ -35,44 +35,96 @@ async function main() {
     },
   });
 
-        // 4. Create Product Unit
-  const existingUnit = await prisma.productUnit.findFirst({
+  // 4. Create Product Unit
+  let existingUnit = await prisma.productUnit.findFirst({
     where: { productId: product.id, name: 'Piece' },
   });
   if (!existingUnit) {
-    await prisma.productUnit.create({
+    existingUnit = await prisma.productUnit.create({
       data: {
         name: 'Piece',
+        symbol: 'pc',
+        quantity: 1,
+        conversionFactor: 1,
+        isDefault: true,
+        status: 'ACTIVE',
         productId: product.id,
       },
     });
   }
 
-  // 5-6. Demo users removed (worker1/owner1) — users are now created
-  // through the Owner Management page only.
-
-  // 7. Create Initial Inventory
+  // 5. Create Stock Location (business-level)
   const counterLocation = await prisma.stockLocation.upsert({
     where: { id: 'counter-main' },
-    update: { name: 'Counter', type: 'COUNTER', branchId: branch.id, businessId: business.id },
+    update: { name: 'Counter', type: 'COUNTER', businessId: business.id, description: 'Main counter' },
     create: {
       id: 'counter-main',
       name: 'Counter',
       type: 'COUNTER',
-      branchId: branch.id,
       businessId: business.id,
+      description: 'Main counter',
+      status: 'ACTIVE',
     },
   });
 
+  // 6. Create Initial Inventory
   await prisma.inventoryItem.upsert({
     where: { id: 'init-inventory' },
-    update: { quantity: 50, branchId: branch.id, productId: product.id, stockLocationId: counterLocation.id },
+    update: { quantity: 50, branchId: branch.id, productId: product.id, productUnitId: existingUnit.id, stockLocationId: counterLocation.id },
     create: {
       id: 'init-inventory',
       quantity: 50,
       branchId: branch.id,
       productId: product.id,
+      productUnitId: existingUnit.id,
       stockLocationId: counterLocation.id,
+    },
+  });
+
+  // 7. Create Owner user and associate with business
+  const owner = await prisma.user.upsert({
+    where: { id: 'owner-1' },
+    update: { name: 'Owner' },
+    create: {
+      id: 'owner-1',
+      name: 'Owner',
+      role: 'OWNER',
+      status: 'ACTIVE',
+      password: 'owner123',
+    },
+  });
+
+  await prisma.userBusiness.upsert({
+    where: { userId_businessId: { userId: owner.id, businessId: business.id } },
+    update: { role: 'OWNER' },
+    create: {
+      userId: owner.id,
+      businessId: business.id,
+      role: 'OWNER',
+    },
+  });
+
+  // 8. Create Worker user and associate with business
+  const worker = await prisma.user.upsert({
+    where: { id: 'worker-1' },
+    update: { name: 'Worker' },
+    create: {
+      id: 'worker-1',
+      name: 'Worker',
+      role: 'WORKER',
+      status: 'ACTIVE',
+      password: 'worker123',
+      branchId: branch.id,
+    },
+  });
+
+  await prisma.userBusiness.upsert({
+    where: { userId_businessId: { userId: worker.id, businessId: business.id } },
+    update: { role: 'WORKER' },
+    create: {
+      userId: worker.id,
+      businessId: business.id,
+      role: 'WORKER',
     },
   });
 

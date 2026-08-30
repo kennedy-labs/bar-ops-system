@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -18,27 +19,27 @@ export class ShiftStockItemsController {
   ) {}
 
   @Get()
-  getAll() {
-    return this.shiftStockItemsService.getAll();
+  getAll(@Headers('x-business-id') businessId: string) {
+    return this.shiftStockItemsService.getAll(businessId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.shiftStockItemsService.getById(id);
+  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.shiftStockItemsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Body() body: CreateShiftStockItemDto) {
-    return this.shiftStockItemsService.create(body);
+  create(@Headers('x-business-id') businessId: string, @Body() body: CreateShiftStockItemDto) {
+    return this.shiftStockItemsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateShiftStockItemDto) {
-    return this.shiftStockItemsService.update(id, body);
+  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateShiftStockItemDto) {
+    return this.shiftStockItemsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.shiftStockItemsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+    return this.shiftStockItemsService.remove(id, businessId);
   }
 }

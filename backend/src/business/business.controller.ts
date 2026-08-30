@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -16,8 +17,8 @@ export class BusinessController {
   constructor(private readonly businessService: BusinessService) {}
 
   @Get()
-  getAll() {
-    return this.businessService.getAll();
+  getAll(@Headers('x-user-id') userId: string) {
+    return this.businessService.getBusinessesForUser(userId);
   }
 
   @Get(':id')

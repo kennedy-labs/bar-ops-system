@@ -9,7 +9,7 @@ Only the Implementation Algorithm is dynamic.
 
 1. Purpose
 
-The Stock Locations capability identifies where physical stock exists within a Branch.
+The Stock Locations capability identifies where physical stock exists within a Business.
 
 A Stock Location provides the physical boundary needed to distinguish places such as:
 
@@ -38,16 +38,16 @@ The system must:
 
 Create Stock Locations.
 Retrieve Stock Locations.
-List Stock Locations belonging to a Branch.
+List Stock Locations belonging to a Business.
 Update permitted Stock Location information.
-Associate every Stock Location with exactly one Branch.
-Ensure the Branch belongs to the correct Business.
+Associate every Stock Location with exactly one Business.
+Ensure the Business ownership is correct.
 Allow Inventory Items to reference Stock Locations.
 Allow stock operations to identify their physical location.
 Allow authorized Owners to manage Stock Locations.
 Allow Workers to view and use relevant Stock Locations.
 Preserve Stock Location identity.
-Support multiple Stock Locations within one Branch.
+Support multiple Stock Locations within one Business.
 Prevent cross-Business Stock Location access.
 Non-functional Requirements
 
@@ -66,7 +66,7 @@ Historical compatibility.
 No duplicate physical-location source of truth. 3. Dependencies
 Depends On
 Business
-Branch
+User
 Authentication / Authorization
 Prisma
 PostgreSQL
@@ -81,10 +81,8 @@ Analytics
 Stock Locations provide the physical location context used by these capabilities.
 
 4. Design Principles
-   Every Stock Location belongs to exactly one Branch.
-   Every Branch belongs to exactly one Business.
-   Therefore every Stock Location belongs to exactly one Business.
-   A Stock Location cannot belong to multiple Branches.
+Every Stock Location belongs to exactly one Business.
+Every Business may have multiple Stock Locations.
    Stock Location identity must remain stable.
    Location identity must not be duplicated in Inventory or Movement records as free-form text.
    Stock quantity belongs to Inventory.
@@ -95,18 +93,16 @@ Stock Locations provide the physical location context used by these capabilities
    Owners manage Stock Locations.
    Workers use Stock Locations operationally.
 5. Architecture
-   Business
-   │
-   └── Branch
-   │
-   ├── Counter
-   │ └── Inventory
-   │
-   ├── Store
-   │ └── Inventory
-   │
-   └── Other Location
-   └── Inventory
+Business
+│
+├── Counter
+│ └── Inventory
+│
+├── Store
+│ └── Inventory
+│
+└── Other Location
+└── Inventory
 
 Operational structure:
 
@@ -166,7 +162,7 @@ Preserve existing repository/service conventions where they already exist.
 Conceptual fields:
 
 id
-branchId
+businessId
 name
 description
 status
@@ -175,7 +171,7 @@ updatedAt
 Field Requirements
 Field Requirement
 id Stable unique identifier
-branchId Required Branch reference
+businessId Required Business reference
 name Required
 description Optional
 status Active/inactive state where supported
@@ -190,7 +186,7 @@ The Stock Location ID is the permanent identity of the physical location.
 
 Example:
 
-Branch: Main Branch
+Business: Main Bar
 
 Stock Location
 ├── id: location-001
@@ -209,7 +205,7 @@ Location names must:
 Be required.
 Not be blank.
 Clearly identify the physical location.
-Be meaningful within the Branch.
+Be meaningful within the Business.
 Be validated before persistence.
 
 Examples:
@@ -250,8 +246,8 @@ INACTIVE
 model StockLocation {
 id String @id @default(cuid())
 
-branchId String
-branch Branch @relation(fields: [branchId], references: [id])
+businessId String
+business Business @relation(fields: [businessId], references: [id])
 
 name String
 description String?
@@ -260,7 +256,7 @@ status StockLocationStatus @default(ACTIVE)
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 
-@@index([branchId])
+@@index([businessId])
 }
 
 The actual model must match the project's established Prisma schema.
@@ -272,8 +268,8 @@ Do not create a duplicate Stock Location model.
 The database must enforce:
 
 Unique Stock Location ID.
-Required Branch reference.
-Valid Branch foreign key.
+Required Business reference.
+Valid Business foreign key.
 Required location name.
 Valid status.
 Referential integrity. 14. Business Isolation
@@ -282,15 +278,11 @@ Ownership follows:
 
 Business
 ↓
-Branch
-↓
 Stock Location
 
 Every Stock Location operation must establish:
 
 Authenticated Business
-↓
-Branch
 ↓
 Stock Location
 
@@ -300,25 +292,21 @@ Business A must never access:
 
 Business B
 ↓
-Branch B
-↓
-Location B 15. Branch Isolation
+Location B 15. Business Isolation
 
-A Stock Location belongs to one Branch.
+A Stock Location belongs to one Business.
 
 Therefore:
 
-Branch A
+Business A
 ↓
 Location A
 
 must not be treated as belonging to:
 
-Branch B
+Business B
 
-even when both Branches belong to the same Business.
-
-Branch boundaries must remain explicit.
+Business boundaries must remain explicit.
 
 16. API Contract
     Create Stock Location
@@ -327,21 +315,21 @@ Branch boundaries must remain explicit.
 Example:
 
 {
-"branchId": "branch-id",
+"businessId": "business-id",
 "name": "Counter",
 "description": "Main operating counter"
 }
 
-The backend must verify that the Branch belongs to the authenticated Business.
+The backend must verify that the Business ownership is valid.
 
 17. List Stock Locations
     GET /stock-locations
 
 Returns locations accessible within the authorized Business.
 
-Optional Branch filtering:
+Optional Business filtering:
 
-GET /stock-locations?branchId=branch-id
+GET /stock-locations?businessId=business-id
 
 The filter must not bypass Business ownership.
 
@@ -351,8 +339,6 @@ The filter must not bypass Business ownership.
 The requested location must belong to:
 
 Authenticated Business
-↓
-Authorized Branch
 ↓
 Requested Location 19. Update Stock Location
 PATCH /stock-locations/:id
@@ -366,12 +352,12 @@ status
 Protected fields:
 
 id
-branchId
+businessId
 createdAt
 
 must not be modified through ordinary updates.
 
-Changing Branch ownership requires a separate explicit business process if ever supported.
+Changing Business ownership requires a separate explicit business process if ever supported.
 
 20. API Response
 
@@ -379,7 +365,7 @@ Example:
 
 {
 "id": "location-id",
-"branchId": "branch-id",
+"businessId": "business-id",
 "name": "Counter",
 "description": "Main operating counter",
 "status": "ACTIVE",
@@ -397,9 +383,8 @@ Invalid input
 Unauthorized request
 Forbidden request
 Stock Location not found
-Branch not found
+Business not found
 Cross-Business access
-Cross-Branch access
 Invalid status
 Database failure
 
@@ -412,8 +397,9 @@ Never expose raw Prisma errors.
 
 Validate:
 
-Branch exists.
-Branch belongs to authorized Business.
+Location exists.
+Business exists.
+Business ownership is valid.
 Name exists.
 Name is not blank.
 Description is valid where supplied.
@@ -445,7 +431,6 @@ Use Stock Locations when recording permitted operations.
 Workers must not:
 
 Create locations.
-Reassign locations between Branches.
 Change Business ownership.
 Modify location configuration unless explicitly authorized. 24. Inventory Boundary
 
@@ -548,22 +533,20 @@ The implementation must:
 Authenticate requests.
 Authorize management operations.
 Enforce Business ownership.
-Enforce Branch ownership.
 Prevent cross-Business access.
-Prevent cross-Branch reassignment.
 Validate all input.
 Protect database relationships.
 Prevent unauthorized configuration changes. 30. Performance and Reliability
 
 The capability must:
 
-Index branchId.
+Index businessId.
 Use efficient location ID lookups.
 Avoid unnecessary Inventory loading.
 Avoid N+1 queries.
 Return only required fields.
 Preserve database consistency.
-Support efficient Branch-level location retrieval. 31. Tools
+Support efficient Business-level location retrieval. 31. Tools
 Primary
 NestJS
 TypeScript
@@ -606,15 +589,12 @@ Location A
 
 cannot be accessed by Business B.
 
-Branch Isolation
+Business Isolation
 
 Verify:
 
 Business A
-├── Branch A
-│ └── Location A
-│
-└── Branch B
+├── Location A
 └── Location B
 
 Location A must not be treated as Location B.
@@ -631,7 +611,7 @@ Worker
 Create location = rejected
 Worker
 ↓
-Move location to another Branch = rejected
+Move location to another Business = rejected
 Historical Integrity
 
 Verify:
@@ -645,17 +625,16 @@ Location deactivated
 Historical records remain readable and correctly associated.
 
 33. Completion Criteria
-    ✓ Stock Location can be created
-    ✓ Stock Location can be retrieved
-    ✓ Stock Locations can be listed
-    ✓ Stock Location can be updated
-    ✓ Branch ownership works
-    ✓ Business isolation works
-    ✓ Branch isolation works
-    ✓ Owner permissions work
-    ✓ Worker restrictions work
-    ✓ Location status works
-    ✓ Historical references remain valid
+✓ Stock Location can be created
+✓ Stock Location can be retrieved
+✓ Stock Locations can be listed
+✓ Stock Location can be updated
+✓ Business ownership works
+✓ Business isolation works
+✓ Owner permissions work
+✓ Worker restrictions work
+✓ Location status works
+✓ Historical references remain valid
     ✓ Inventory can reference locations
     ✓ Stock Movements can reference locations
     ✓ Shift Stock can reference locations
@@ -759,8 +738,6 @@ Stock Locations built
 Locations verified
 ↓
 Business ownership verified
-↓
-Branch ownership verified
 ↓
 Inventory transition verified
 ↓
