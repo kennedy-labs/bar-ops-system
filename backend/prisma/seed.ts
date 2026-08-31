@@ -26,7 +26,9 @@ async function main() {
 
   // 3. Create Product (unique name within business)
   const product = await prisma.product.upsert({
-    where: { businessId_name: { businessId: business.id, name: 'Tusker(canned)' } },
+    where: {
+      businessId_name: { businessId: business.id, name: 'Tusker(canned)' },
+    },
     update: { name: 'Tusker(canned)' },
     create: {
       name: 'Tusker(canned)',
@@ -56,7 +58,12 @@ async function main() {
   // 5. Create Stock Location (business-level)
   const counterLocation = await prisma.stockLocation.upsert({
     where: { id: 'counter-main' },
-    update: { name: 'Counter', type: 'COUNTER', businessId: business.id, description: 'Main counter' },
+    update: {
+      name: 'Counter',
+      type: 'COUNTER',
+      businessId: business.id,
+      description: 'Main counter',
+    },
     create: {
       id: 'counter-main',
       name: 'Counter',
@@ -70,7 +77,13 @@ async function main() {
   // 6. Create Initial Inventory
   await prisma.inventoryItem.upsert({
     where: { id: 'init-inventory' },
-    update: { quantity: 50, branchId: branch.id, productId: product.id, productUnitId: existingUnit.id, stockLocationId: counterLocation.id },
+    update: {
+      quantity: 50,
+      branchId: branch.id,
+      productId: product.id,
+      productUnitId: existingUnit.id,
+      stockLocationId: counterLocation.id,
+    },
     create: {
       id: 'init-inventory',
       quantity: 50,
@@ -119,7 +132,9 @@ async function main() {
   });
 
   await prisma.userBusiness.upsert({
-    where: { userId_businessId: { userId: worker.id, businessId: business.id } },
+    where: {
+      userId_businessId: { userId: worker.id, businessId: business.id },
+    },
     update: { role: 'WORKER' },
     create: {
       userId: worker.id,

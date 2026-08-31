@@ -31,7 +31,11 @@ describe('MpesaTransactionsService', () => {
   beforeEach(async () => {
     prisma = {
       business: { findUnique: jest.fn() },
-      branch: { findUnique: jest.fn().mockResolvedValue({ id: 'branch1', businessId: 'biz1' }) },
+      branch: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ id: 'branch1', businessId: 'biz1' }),
+      },
       mpesaAccount: { findFirst: jest.fn() },
       shift: { findFirst: jest.fn() },
       mpesaTransaction: {
@@ -95,7 +99,9 @@ describe('MpesaTransactionsService', () => {
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('throws NotFoundException if mpesa account is missing', async () => {
@@ -109,7 +115,9 @@ describe('MpesaTransactionsService', () => {
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('throws BadRequestException if account is inactive', async () => {
@@ -126,7 +134,9 @@ describe('MpesaTransactionsService', () => {
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz1', dto)).rejects.toThrow(BadRequestException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('attaches shiftId when the shift belongs to the same business and is eligible', async () => {
@@ -192,7 +202,9 @@ describe('MpesaTransactionsService', () => {
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz1', dto)).rejects.toThrow(BadRequestException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('returns existing transaction for duplicate mpesaAccountId and transactionReference', async () => {
@@ -277,16 +289,23 @@ describe('MpesaTransactionsService', () => {
       id: 'biz2',
       name: 'Business B',
     });
+    prisma.branch.findUnique.mockResolvedValue({
+      id: 'branch1',
+      businessId: 'biz2',
+    });
     prisma.mpesaAccount.findFirst.mockResolvedValue(null);
 
     const dto: CreateMpesaTransactionDto = {
+      branchId: 'branch1',
       mpesaAccountId: 'account1',
       transactionReference: 'ext-3',
       amount: 50,
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz2', dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz2', dto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('returns transaction by id only when business matches', async () => {
@@ -457,7 +476,9 @@ describe('MpesaTransactionsService', () => {
       transactionTime: new Date().toISOString(),
     } as any;
 
-    await expect(service.create('biz1', dto)).rejects.toThrow(NotFoundException);
+    await expect(service.create('biz1', dto)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('preserves existing shift attribution when duplicate transaction is resubmitted with a different shift', async () => {

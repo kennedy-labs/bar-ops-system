@@ -23,22 +23,35 @@ export class StockLocationsController {
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+  getById(
+    @Param('id') id: string,
+    @Headers('x-business-id') businessId: string,
+  ) {
     return this.stockLocationsService.getById(id, businessId);
   }
 
   @Post()
-  create(@Headers('x-business-id') businessId: string, @Body() body: CreateStockLocationDto) {
+  create(
+    @Headers('x-business-id') businessId: string,
+    @Body() body: CreateStockLocationDto,
+  ) {
     return this.stockLocationsService.create(businessId, body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Headers('x-business-id') businessId: string, @Body() body: UpdateStockLocationDto) {
+  update(
+    @Param('id') id: string,
+    @Headers('x-business-id') businessId: string,
+    @Body() body: UpdateStockLocationDto,
+  ) {
     return this.stockLocationsService.update(id, businessId, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Headers('x-business-id') businessId: string) {
+  remove(
+    @Param('id') id: string,
+    @Headers('x-business-id') businessId: string,
+  ) {
     return this.stockLocationsService.remove(id, businessId);
   }
 }

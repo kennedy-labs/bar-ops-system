@@ -41,10 +41,7 @@ Design decisions that change data model + semantics. Each needs explicit sign-of
 - [x] **P2-2 Shift price/cost fidelity:** **DECIDED** — ShiftStockItem includes `revenue`,
       `cost`, `grossProfit`, `addedQuantity`, `soldQuantity`. Values are system-calculated
       at shift close per blueprint immutability + "profit from recorded events" principle.
-- [ ] **P2-3 Multi-business ownership:** **Decision required.** Options:
-      - Join table `UserBusiness` (one owner, many businesses)
-      - Per-business user records
-      - Current assumption: one user belongs to one business only
+- [ ] **P2-3 Multi-business ownership:** **Decision required.** Options: - Join table `UserBusiness` (one owner, many businesses) - Per-business user records - Current assumption: one user belongs to one business only
 - [x] **P2-4 Discrepancy model:** expanded backend to include financial discrepancy types
       (`CASH_SHORTAGE`, `MPESA_MISMATCH`, `TRANSFER_MISMATCH`) with `expectedValue`,
       `actualValue`, `valueVariance` fields — not just quantity-only.
@@ -84,20 +81,20 @@ Only when you're ready to stop allowing any-user access.
 
 ## Design Decisions Log
 
-| Decision | Outcome |
-|----------|---------|
-| Roles | Owner + Worker only. No Manager. Owner performs management functions. |
-| Discrepancies | Quantity AND financial (cash, Mpesa, transfer mismatches). |
-| Mpesa account ownership | Branch-specific. Each branch has its own Mpesa accounts. |
-| Mpesa transaction details | Capture sender phone, receiver phone, transaction type. |
-| Product units | Convertible units supported (e.g., 1 crate = 24 bottles). |
-| Shift stock items | Quantities + financial values (revenue, cost, gross profit). |
-| Inventory uniqueness | `[productId, productUnitId, stockLocationId]` — same product/unit can exist at different locations. |
-| Stock location ownership | Business-level (shared across branches), not branch-level. |
-| User record fields | `branchId`, `phone`, `email`, `status` included. |
-| Transfers | Track both branch and location (`senderLocationId`, `receiverLocationId`). |
-| Expense approval | Automatically valid on record. Owner acknowledgment = read confirmation only. |
-| Stock location docs | Kept `STOCK-LOCATIONS_DESIGN_ARCHITECTURE.md` (business-level); deleted duplicate `STOCK_LOCATIONS_DESIGN_ARCHITECTURE.md`. |
+| Decision                  | Outcome                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Roles                     | Owner + Worker only. No Manager. Owner performs management functions.                                                       |
+| Discrepancies             | Quantity AND financial (cash, Mpesa, transfer mismatches).                                                                  |
+| Mpesa account ownership   | Branch-specific. Each branch has its own Mpesa accounts.                                                                    |
+| Mpesa transaction details | Capture sender phone, receiver phone, transaction type.                                                                     |
+| Product units             | Convertible units supported (e.g., 1 crate = 24 bottles).                                                                   |
+| Shift stock items         | Quantities + financial values (revenue, cost, gross profit).                                                                |
+| Inventory uniqueness      | `[productId, productUnitId, stockLocationId]` — same product/unit can exist at different locations.                         |
+| Stock location ownership  | Business-level (shared across branches), not branch-level.                                                                  |
+| User record fields        | `branchId`, `phone`, `email`, `status` included.                                                                            |
+| Transfers                 | Track both branch and location (`senderLocationId`, `receiverLocationId`).                                                  |
+| Expense approval          | Automatically valid on record. Owner acknowledgment = read confirmation only.                                               |
+| Stock location docs       | Kept `STOCK-LOCATIONS_DESIGN_ARCHITECTURE.md` (business-level); deleted duplicate `STOCK_LOCATIONS_DESIGN_ARCHITECTURE.md`. |
 
 ---
 
@@ -108,5 +105,5 @@ Only when you're ready to stop allowing any-user access.
   production.
 - Last audit performed: system-docs vs architecture vs current code (see conversation).
 
-*Authoritative: 2 source-of-truth docs. Everything else (architecture, code) must adjust to
-them — not the other way around.*
+_Authoritative: 2 source-of-truth docs. Everything else (architecture, code) must adjust to
+them — not the other way around._

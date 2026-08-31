@@ -16,15 +16,24 @@ describe('TransfersService', () => {
       findUnique: jest.fn(),
     },
     branch: {
-      findUnique: jest.fn().mockResolvedValue({ id: 'branch1', businessId: 'biz1' }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 'branch1', businessId: 'biz1' }),
     },
     user: {
-      findUnique: jest.fn().mockResolvedValue({ id: 'user1', businessId: 'biz1' }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 'user1', businessId: 'biz1' }),
     },
     transfer: {
       create: jest.fn(),
       findUnique: jest.fn(),
-      findFirst: jest.fn().mockResolvedValue({ id: 'transfer1', businessId: 'biz1', status: 'PENDING', senderUserId: 'user1' }),
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'transfer1',
+        businessId: 'biz1',
+        status: 'PENDING',
+        senderUserId: 'user1',
+      }),
       update: jest.fn(),
       delete: jest.fn(),
       findMany: jest.fn(),
@@ -39,24 +48,36 @@ describe('TransfersService', () => {
       findMany: jest.fn(),
     },
     inventoryItem: {
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       create: jest.fn(),
     },
     stockLocation: {
-      findFirst: jest.fn().mockResolvedValue({ id: 'loc1', businessId: 'biz1' }),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue({ id: 'loc1', businessId: 'biz1' }),
     },
     stockMovement: {
       createMany: jest.fn(),
     },
     userBusiness: {
-      findFirst: jest.fn().mockResolvedValue({ userId: 'user1', businessId: 'biz1' }),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue({ userId: 'user1', businessId: 'biz1' }),
     },
     $transaction: jest.fn((cb) => cb(mockPrisma)),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+
+    // Reset default mock resolved values to prevent test pollution
+    mockPrisma.branch.findUnique.mockResolvedValue({ id: 'branch1', businessId: 'biz1' });
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 'user1', businessId: 'biz1' });
+    mockPrisma.transfer.findFirst.mockResolvedValue({ id: 'transfer1', businessId: 'biz1', status: 'PENDING', senderUserId: 'user1' });
+    mockPrisma.userBusiness.findFirst.mockResolvedValue({ userId: 'user1', businessId: 'biz1' });
+    mockPrisma.inventoryItem.findFirst.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -123,7 +144,9 @@ describe('TransfersService', () => {
         senderUserId: 'user1',
       };
 
-      await expect(service.create('biz1', body)).rejects.toThrow(BadRequestException);
+      await expect(service.create('biz1', body)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException if business does not exist', async () => {
@@ -138,7 +161,9 @@ describe('TransfersService', () => {
 
       mockPrisma.business.findUnique.mockResolvedValue(null);
 
-      await expect(service.create('biz-invalid', body)).rejects.toThrow(NotFoundException);
+      await expect(service.create('biz-invalid', body)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -149,7 +174,7 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 10 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'PENDING',
         businessId: 'biz1',
@@ -183,7 +208,7 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 10 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'SENDER_CONFIRMED',
       });
@@ -210,12 +235,12 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue(transfer);
+      mockPrisma.transfer.findFirst.mockResolvedValue(transfer);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user1',
         businessId: 'biz1',
       });
-      mockPrisma.inventoryItem.findUnique.mockResolvedValue({
+      mockPrisma.inventoryItem.findFirst.mockResolvedValue({
         id: 'inv1',
         quantity: 10,
       });
@@ -266,7 +291,7 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue(transfer);
+      mockPrisma.transfer.findFirst.mockResolvedValue(transfer);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user2',
         businessId: 'biz1',
@@ -292,12 +317,12 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 15 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue(transfer);
+      mockPrisma.transfer.findFirst.mockResolvedValue(transfer);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user1',
         businessId: 'biz1',
       });
-      mockPrisma.inventoryItem.findUnique.mockResolvedValue({
+      mockPrisma.inventoryItem.findFirst.mockResolvedValue({
         id: 'inv1',
         quantity: 10,
       }); // Insufficient! (10 < 15)
@@ -312,7 +337,7 @@ describe('TransfersService', () => {
     it('should delete a pending transfer', async () => {
       const transferId = 'transfer1';
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'PENDING',
       });
@@ -332,7 +357,7 @@ describe('TransfersService', () => {
     it('should reject deletion of non-pending transfer', async () => {
       const transferId = 'transfer1';
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'SENDER_CONFIRMED',
       });
@@ -348,7 +373,7 @@ describe('TransfersService', () => {
       const transferId = 'transfer1';
       const dto = { receiverUserId: 'user2' };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'PENDING',
         businessId: 'biz1',
@@ -378,22 +403,22 @@ describe('TransfersService', () => {
       const transferId = 'transfer1';
       const dto = { receiverUserId: 'user2' };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'SENDER_CONFIRMED',
         businessId: 'biz1',
       });
 
-      await expect(service.setReceiverUser(transferId, 'biz1', dto)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.setReceiverUser(transferId, 'biz1', dto),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should reject receiver assignment when user belongs to another business', async () => {
       const transferId = 'transfer1';
       const dto = { receiverUserId: 'user2' };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue({
+      mockPrisma.transfer.findFirst.mockResolvedValue({
         id: transferId,
         status: 'PENDING',
         businessId: 'biz1',
@@ -402,10 +427,11 @@ describe('TransfersService', () => {
         id: 'user2',
         businessId: 'biz2',
       });
+      mockPrisma.userBusiness.findFirst.mockResolvedValue(null);
 
-      await expect(service.setReceiverUser(transferId, 'biz1', dto)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.setReceiverUser(transferId, 'biz1', dto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -422,13 +448,13 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue(transfer);
+      mockPrisma.transfer.findFirst.mockResolvedValue(transfer);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user2',
         businessId: 'biz1',
       });
       // Receiver inventory item exists
-      mockPrisma.inventoryItem.findUnique.mockResolvedValue({
+      mockPrisma.inventoryItem.findFirst.mockResolvedValue({
         id: 'inv2',
         quantity: 3,
       });
@@ -478,13 +504,13 @@ describe('TransfersService', () => {
         items: [{ productId: 'prod1', productUnitId: 'unit1', quantity: 5 }],
       };
 
-      mockPrisma.transfer.findUnique.mockResolvedValue(transfer);
+      mockPrisma.transfer.findFirst.mockResolvedValue(transfer);
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user2',
         businessId: 'biz1',
       });
       // Receiver inventory item does not exist
-      mockPrisma.inventoryItem.findUnique.mockResolvedValue(null);
+      mockPrisma.inventoryItem.findFirst.mockResolvedValue(null);
       mockPrisma.transfer.update.mockResolvedValue({
         ...transfer,
         status: 'COMPLETED',
@@ -497,6 +523,7 @@ describe('TransfersService', () => {
         data: {
           branchId: 'branch2',
           productId: 'prod1',
+          productUnitId: 'unit1',
           quantity: 5,
         },
       });

@@ -61,7 +61,16 @@ export class TransfersService {
       notes,
     } = body;
 
-    if (senderBranchId === receiverBranchId && senderLocationId === receiverLocationId) {
+    if (senderBranchId === receiverBranchId) {
+      throw new BadRequestException(
+        'Sender and receiver branches must be different',
+      );
+    }
+
+    if (
+      senderBranchId === receiverBranchId &&
+      senderLocationId === receiverLocationId
+    ) {
       throw new BadRequestException(
         'Sender and receiver locations cannot be the same',
       );
@@ -107,14 +116,18 @@ export class TransfersService {
       where: { id: senderLocationId, businessId },
     });
     if (!senderLocation) {
-      throw new NotFoundException(`Sender location ${senderLocationId} not found for business ${businessId}`);
+      throw new NotFoundException(
+        `Sender location ${senderLocationId} not found for business ${businessId}`,
+      );
     }
 
     const receiverLocation = await this.prisma.stockLocation.findFirst({
       where: { id: receiverLocationId, businessId },
     });
     if (!receiverLocation) {
-      throw new NotFoundException(`Receiver location ${receiverLocationId} not found for business ${businessId}`);
+      throw new NotFoundException(
+        `Receiver location ${receiverLocationId} not found for business ${businessId}`,
+      );
     }
 
     const senderUser = await this.prisma.user.findUnique({
@@ -413,7 +426,11 @@ export class TransfersService {
     });
   }
 
-  async setReceiverUser(id: string, businessId: string, dto: SetReceiverUserDto) {
+  async setReceiverUser(
+    id: string,
+    businessId: string,
+    dto: SetReceiverUserDto,
+  ) {
     const transfer = await this.prisma.transfer.findFirst({
       where: { id, businessId },
     });
@@ -574,7 +591,11 @@ export class TransfersService {
     });
   }
 
-  getByBranch(branchId: string, role?: 'SENDER' | 'RECEIVER', businessId?: string) {
+  getByBranch(
+    branchId: string,
+    role?: 'SENDER' | 'RECEIVER',
+    businessId?: string,
+  ) {
     const where: any = {};
     if (businessId) {
       where.businessId = businessId;
